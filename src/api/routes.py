@@ -14,11 +14,37 @@ CORS(api)
 # creando el PUT para editar la INFO del ususario
 @api.route('/users/<int:user_id>', methods=['PUT'])
 def update_user_info(user_id):
+
     user = db.session.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
+
     if not user:
         return jsonify({"msg":"User not found"}), 404
-    data = request.get_json()
     
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Datos faltantes"}), 400
+
+    if "full_name" in data:
+        user.full_name = data["full_name"]
+    if "email" in data:
+        user.email = data["email"]
+    if "phone" in data:
+        user.phone = data["phone"]
+
+    db.session.commit()
+
+    return jsonify({
+        "msg" : "Usuario actualizado",
+        "user" : {
+            "id" : user.id,
+            "full_name" : user.full_name,
+            "email" : user.email,
+            "phone" : user.phone
+        }
+    }), 200
+
+
+
 
 @api.route('/hello', methods=['POST', 'GET'])
 def handle_hello():

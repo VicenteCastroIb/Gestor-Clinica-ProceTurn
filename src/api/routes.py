@@ -86,7 +86,6 @@ def signup():
                     dni=dni, 
                     full_name=full_name, 
                     phone=phone, 
-                    status=True,
                     is_active=True)
     db.session.add(new_user)
     db.session.commit() 
@@ -121,3 +120,4 @@ def get_users():
 
         return jsonify({"users": users_list}), 200
     return 'not found', 404
+

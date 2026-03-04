@@ -15,8 +15,9 @@
       "port": 5432,
       "driver": "PostgreSQL",
       "database": "example",
-      "username": "gitpod",
+      "username": "gitpod", 
       "name": "Postgres_Local"
     }
   ]
 }
+  

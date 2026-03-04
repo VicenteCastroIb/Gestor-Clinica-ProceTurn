@@ -14,6 +14,27 @@ api = Blueprint('api', __name__)
 
 # Allow CORS requests to this API
 CORS(api)
+
+@api.route('/users', methods=['GET'])
+def get_users():
+    users = User.query.all()
+    if users is not None:
+        users_list = list(map(lambda user: user.serialize(),users))
+
+        return jsonify({"users": users_list}), 200
+    return 'not found', 404
+
+@api.route('/users/<int:user_id>', methods=['GET'])
+def get_user_info(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"msg":"User not found"}), 404
+
+    return jsonify({
+        "msg" : "Usuario encontrado",
+        "user" : user.serialize()
+    }), 200
+
 # creando el PUT para editar la INFO del ususario
 @api.route('/users/<int:user_id>', methods=['PUT'])
 def update_user_info(user_id):
@@ -112,12 +133,5 @@ def login():
     access_token = create_access_token(identity=str(user.id))
     return jsonify(access_token=access_token, user=user.serialize()), 200
 
-@api.route('/users', methods=['GET'])
-def get_users():
-    users = User.query.all()
-    if users is not None:
-        users_list = list(map(lambda user: user.serialize(),users))
 
-        return jsonify({"users": users_list}), 200
-    return 'not found', 404
 

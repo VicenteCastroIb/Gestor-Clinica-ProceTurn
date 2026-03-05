@@ -15,7 +15,8 @@ api = Blueprint('api', __name__)
 # Allow CORS requests to this API
 CORS(api)
 
-#No escribir codigo aca, escribir abajo
+# No escribir codigo aca, escribir abajo
+
 
 @api.route('/hello', methods=['POST', 'GET'])
 def handle_hello():
@@ -25,6 +26,7 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
 
 @api.route('/signup', methods=['POST'])
 def signup():
@@ -47,17 +49,17 @@ def signup():
     if existing_user:
         return jsonify({"msg": "User already exists"}), 409
 
-
-    new_user = User(email=email, 
-                    password_hash=password_hash, 
-                    role=role, 
-                    dni=dni, 
-                    full_name=full_name, 
-                    phone=phone, 
+    new_user = User(email=email,
+                    password_hash=password_hash,
+                    role=role,
+                    dni=dni,
+                    full_name=full_name,
+                    phone=phone,
                     is_active=True)
     db.session.add(new_user)
-    db.session.commit() 
+    db.session.commit()
     return jsonify({"msg": "User created successfully"}), 201
+
 
 @api.route('/login', methods=['POST'])
 def login():
@@ -80,6 +82,7 @@ def login():
     access_token = create_access_token(identity=str(user.id))
     return jsonify(access_token=access_token, user=user.serialize()), 200
 
+
 @api.route('/users', methods=['GET'])
 def get_users():
     users = User.query.all()
@@ -89,16 +92,18 @@ def get_users():
         return jsonify({"users": users_list}), 200
     return 'not found', 404
 
+
 @api.route('/users/<int:user_id>', methods=['GET'])
 def get_user_info(user_id):
     user = db.session.get(User, user_id)
     if not user:
-        return jsonify({"msg":"User not found"}), 404
+        return jsonify({"msg": "User not found"}), 404
 
     return jsonify({
-        "msg" : "Usuario encontrado",
-        "user" : user.serialize()
+        "msg": "Usuario encontrado",
+        "user": user.serialize()
     }), 200
+
 
 @api.route('/users/<int:user_id>', methods=['PUT'])
 @jwt_required()
@@ -115,10 +120,10 @@ def update_user(user_id):
 
     user = db.session.execute(select(User).where(
         User.id == user_id)).scalar_one_or_none()
-    
+
     if not user:
         return jsonify({"msg": "User not found"}), 404
-    
+
     data = request.get_json()
     if not data:
         return jsonify({"msg": "Mising data"}), 400
@@ -195,18 +200,22 @@ def update_user(user_id):
         response["confirmation"] = "The user now has administrator privileges"
 
     return jsonify(response), 200
-   
 
 
+@api.route('/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
 
+    user = db.session.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
 
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
 
+    try:
+        db.session.delete(user)
+        db.session.commit()
 
-        
+        return jsonify({"msg": f"User with ID {user_id} has been deleted"}), 200
 
-
-
-
-
-
-   
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": "Error deleting user", "error": str(e)}), 500

@@ -1,21 +1,20 @@
 import React, { useContext, useEffect } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
+import { useNavigate } from "react-router-dom";
 
 export const Staff = () => {
-
+    const navigate = useNavigate()
     const { store, dispatch } = useContext(StoreContext);
 
     const getStaff = async () => {
-        const backendURL = "https://orange-robot-r4vrjrw657w4fx6p6-3001.app.github.dev";
+        const backendURL = import.meta.env.VITE_BACKEND_URL;
         const url = `${backendURL}/api/users`;
 
         try {
-            console.log("Intentando fetch a:", url);
             const response = await fetch(url);
             if (!response.ok) throw new Error("Error loading staff");
             const data = await response.json();
 
-            console.log("Datos recibidos:", data);
 
             dispatch({
                 type: "set_staff_list",
@@ -30,12 +29,16 @@ export const Staff = () => {
         getStaff();
     }, []);
 
-    const updateUser = async(e) => {
-        
-    }
+    const handleEditClick = (user) => {
+        dispatch({
+            type: "set_user",
+            payload: user
+        });
+        navigate("/editUser"); 
+    };
 
     return (
-        <div className="min-vh-100 py-4 px-5" style={{ backgroundColor: "#f3f4f6" }}>
+        <div className=" py-4 px-5" >
             <div className="d-flex justify-content-between align-items-start mb-4">
                 <div>
                     <h2 className="fw-bold mb-1" style={{ color: "#1e293b" }}>Personal Administrativo</h2>
@@ -62,7 +65,7 @@ export const Staff = () => {
                 ))}
             </div>
 
-            <h5 className="fw-bold mb-4">Equipo Administrativo (5)</h5>
+            <h5 className="fw-bold mb-4">Equipo Administrativo ({store.staffList.length})</h5>
 
             <div className="row g-4">
                 {store.staffList.length > 0 ? (
@@ -78,7 +81,7 @@ export const Staff = () => {
                                         </div>
                                         <div>
                                             <div className="d-flex align-items-center gap-2">
-                                                <h5 className="fw-bold mb-0">{user.full_name.replace(/_/g,' ')}</h5>
+                                                <h5 className="fw-bold mb-0">{user.full_name.replace(/_/g, ' ')}</h5>
                                                 <span className={`badge rounded-pill fw-medium ${user.is_active ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
                                                     {user.is_active ? "Activo" : "Inactivo"}
                                                 </span>
@@ -105,7 +108,7 @@ export const Staff = () => {
                                             <i className="fa-regular fa-clock me-1"></i> Agenda
                                         </button>
 
-                                        <button className="btn btn-outline-dark btn-sm rounded-3 px-3">
+                                        <button className="btn btn-outline-dark btn-sm rounded-3 px-3" onClick={() => handleEditClick(user)}>
                                             <i className="fa-regular fa-pen-to-square me-1"></i> Editar
                                         </button>
                                     </div>

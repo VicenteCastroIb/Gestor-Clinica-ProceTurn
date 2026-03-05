@@ -1,5 +1,6 @@
 export const initialStore = {
   staffList: [],
+  singleUser: null,
   message: null,
   todos: [],
 };
@@ -11,6 +12,12 @@ export default function storeReducer(store, action = {}) {
       return {
         ...store,
         staffList: action.payload,
+      };
+
+    case "set_user":
+      return {
+        ...store,
+        singleUser: action.payload
       };
 
     case "set_hello":

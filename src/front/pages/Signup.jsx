@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/signup.css";
+import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const Signup = () => {
-
+    const { store } = useGlobalReducer();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         email: "",
@@ -29,6 +30,7 @@ const Signup = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Authorization": `Bearer ${store.token}`,
                 },
                 body: JSON.stringify(formData),
             });

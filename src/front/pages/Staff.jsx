@@ -1,6 +1,7 @@
 import React, { useContext, useEffect } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import { useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 export const Staff = () => {
     const navigate = useNavigate()
@@ -41,7 +42,7 @@ export const Staff = () => {
             type: "set_user",
             payload: user
         });
-        navigate("/editUser"); 
+        navigate("/editUser");
     };
 
     return (
@@ -51,9 +52,9 @@ export const Staff = () => {
                     <h2 className="fw-bold mb-1" style={{ color: "#1e293b" }}>Personal Administrativo</h2>
                     <p className="text-muted">Gestiona tu equipo</p>
                 </div>
-                <button className="btn btn-primary px-4 py-2 fw-semibold shadow-sm" style={{ backgroundColor: "#000000" }}>
+                <NavLink to="/signup" className="btn btn-primary px-4 py-2 fw-semibold shadow-sm" style={{ backgroundColor: "#000000" }}>
                     + Agregar Personal
-                </button>
+                </NavLink>
             </div>
 
             <div className="row g-3 mb-5">

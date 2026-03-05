@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useState, useRef, useEffect, useContext } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import "../styles/sidebar.css";
@@ -54,7 +54,7 @@ const svgLogout =
 
 
 export const Sidebar = () => {
-    const { store, dispatch } = useContext(StoreContext);
+    const { store } = useContext(StoreContext);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownMenuRef = useRef(null);
     const capitalizeName = (name) => {

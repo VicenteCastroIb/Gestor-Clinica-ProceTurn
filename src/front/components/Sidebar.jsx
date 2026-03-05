@@ -54,7 +54,7 @@ const svgLogout =
 
 
 export const Sidebar = () => {
-    const { store } = useContext(StoreContext);
+    const { store, dispatch } = useContext(StoreContext);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownMenuRef = useRef(null);
     const capitalizeName = (name) => {
@@ -65,8 +65,10 @@ export const Sidebar = () => {
             .join(' ');
     };
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        dispatch({
+            type: "logout",
+            payloasd: null
+        });
         window.location.href = "/login";
     };
     useEffect(() => {

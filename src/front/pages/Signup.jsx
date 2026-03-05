@@ -30,7 +30,7 @@ const Signup = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${store.token}`,
+                    //"Authorization": `Bearer ${store.token}`,    # Desactivado ya que para registrar no deberia pedir token
                 },
                 body: JSON.stringify(formData),
             });

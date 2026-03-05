@@ -27,14 +27,14 @@ def handle_hello():
 
     return jsonify(response_body), 200
 
-# Admin only endpoint - create a new user
+# No debe requerir token ya que es registro
 @api.route('/signup', methods=['POST'])
-@jwt_required()
 def signup():
-    current_user = get_jwt_identity()
-    admin = db.session.get(User, current_user)
-    if not admin or admin.role != "admin":
-        return jsonify({"msg": "Unauthorized"}), 403
+    # @jwt_required()
+    # current_user = get_jwt_identity() Registro
+    # admin = db.session.get(User, current_user)
+    # if not admin or admin.role != "admin":
+    #    return jsonify({"msg": "Unauthorized"}), 403
 
     data = request.get_json()
 
@@ -89,12 +89,12 @@ def login():
 
 # Admin only endpoint - get all users
 @api.route('/users', methods=['GET'])
-@jwt_required()
+#@jwt_required()
 def get_users():
-    current_user = get_jwt_identity()
-    admin = db.session.get(User, current_user)
-    if not admin or admin.role != "admin":
-        return jsonify({"msg": "Unauthorized"}), 403
+    #current_user = get_jwt_identity()
+    #admin = db.session.get(User, current_user)
+    #if not admin or admin.role != "admin":
+    #    return jsonify({"msg": "Unauthorized"}), 403
 
     users = User.query.all()
     if users is not None:

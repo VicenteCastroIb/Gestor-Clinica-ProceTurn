@@ -21,7 +21,7 @@ export const router = createBrowserRouter(
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/single/:theId" element={<ProtectedRoute><Single /></ProtectedRoute>} />
         <Route path="/demo" element={<ProtectedRoute><Demo /></ProtectedRoute>} />
-        <Route path="/signup" element={<ProtectedRoute adminOnly><Signup /></ProtectedRoute>} />
+        <Route path="/signup" element={<Signup />}/>
         <Route path="/staff" element={<ProtectedRoute adminOnly><Staff /></ProtectedRoute>} />
         <Route path="/editUser" element={<ProtectedRoute adminOnly><EditUser /></ProtectedRoute>} />
       </Route>

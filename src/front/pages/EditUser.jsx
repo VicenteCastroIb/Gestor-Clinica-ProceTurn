@@ -40,6 +40,12 @@ export const EditUser = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (formData.role === "admin") {
+            const respuesta = window.confirm("¿Estás seguro de que deseas otorgar privilegios de Administrador a este usuario? Esto le dará acceso total al sistema.");
+            if (!respuesta) return;
+        }
+
         let backendURL = import.meta.env.VITE_BACKEND_URL;
         if (backendURL.endsWith('/')) backendURL = backendURL.slice(0, -1);
         const url = `${backendURL}/api/users/${store.singleUser.id}`;
@@ -56,8 +62,15 @@ export const EditUser = () => {
             });
 
             const data = await response.json();
+
             if (response.ok) {
-                console.log("Updated successfully ");
+                console.log("%c ¡ACTUALIZACIÓN EXITOSA! ", "background: #222; color: #bada55; font-size: 1.2rem");
+                console.log("Mensaje del servidor:", data.msg);
+                console.log("Admin que editó (ID):", data.audit.modified_by);
+                console.log("Fecha y Hora:", data.audit.date_time);
+                console.log("Detalle de cambios realizados:");
+                console.table(data.audit.changes);
+                if (data.confirmation) console.log("Nota:", data.confirmation);
                 dispatch({ type: "set_user", payload: null });
                 navigate("/staff");
             } else {

@@ -58,6 +58,7 @@ export const Sidebar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownMenuRef = useRef(null);
     const capitalizeName = (name) => {
+        if (!name) return "Usuario"; 
         return name
             .toLowerCase()
             .split(' ')

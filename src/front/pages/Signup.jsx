@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import "../styles/signup.css";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const Signup = () => {
     const { store } = useGlobalReducer();
-    const navigate = useNavigate();
+    const [success, setSuccess] = useState("");
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -25,6 +24,7 @@ const Signup = () => {
         e.preventDefault();
         setLoading(true);
         setError("");
+        setSuccess("");
         try {
             const response = await fetch(import.meta.env.VITE_BACKEND_URL + "/api/signup", {
                 method: "POST",
@@ -36,7 +36,16 @@ const Signup = () => {
             });
             const data = await response.json();
             if (response.ok) {
-                navigate("/login");
+                setSuccess("Usuario creado exitosamente");
+                setFormData({
+                    email: "",
+                    password: "",
+                    role: "",
+                    dni: "",
+                    full_name: "",
+                    phone: ""
+                });
+
             } else {
                 setError(data.msg || "Error al registrar");
             }
@@ -54,8 +63,9 @@ const Signup = () => {
                 <div className="col-md-6 col-lg-5">
                     <div className="signup-card">
                         <h2 className="text-center mb-4 fw-bold">Crear Usuario</h2>
-                        {error && <div className="alert alert-danger">{error}</div>}
                         <form onSubmit={handleSubmit}>
+                            {error && <div className="alert alert-danger">{error}</div>}
+                            {success && <div className="alert alert-success">{success}</div>}
                             <div className="mb-3">
                                 <label className="form-label">Email</label>
                                 <input type="email" className="form-control" name="email"

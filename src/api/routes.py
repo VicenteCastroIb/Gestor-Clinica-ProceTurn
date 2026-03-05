@@ -27,9 +27,14 @@ def handle_hello():
 
     return jsonify(response_body), 200
 
-
+# Admin only endpoint - create a new user
 @api.route('/signup', methods=['POST'])
+@jwt_required()
 def signup():
+    current_user = get_jwt_identity()
+    admin = db.session.get(User, current_user)
+    if not admin or admin.role != "admin":
+        return jsonify({"msg": "Unauthorized"}), 403
 
     data = request.get_json()
 
@@ -82,9 +87,15 @@ def login():
     access_token = create_access_token(identity=str(user.id))
     return jsonify(access_token=access_token, user=user.serialize()), 200
 
-
+# Admin only endpoint - get all users
 @api.route('/users', methods=['GET'])
+@jwt_required()
 def get_users():
+    current_user = get_jwt_identity()
+    admin = db.session.get(User, current_user)
+    if not admin or admin.role != "admin":
+        return jsonify({"msg": "Unauthorized"}), 403
+
     users = User.query.all()
     if users is not None:
         users_list = list(map(lambda user: user.serialize(), users))
@@ -92,9 +103,14 @@ def get_users():
         return jsonify({"users": users_list}), 200
     return 'not found', 404
 
-
+# Admin only endpoint - get a user
 @api.route('/users/<int:user_id>', methods=['GET'])
+@jwt_required()
 def get_user_info(user_id):
+    current_user = get_jwt_identity()
+    admin = db.session.get(User, current_user)
+    if not admin or admin.role != "admin":
+        return jsonify({"msg": "Unauthorized"}), 403
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({"msg": "User not found"}), 404
@@ -104,10 +120,15 @@ def get_user_info(user_id):
         "user": user.serialize()
     }), 200
 
-
+# Admin only endpoint - update a user
 @api.route('/users/<int:user_id>', methods=['PUT'])
 @jwt_required()
 def update_user(user_id):
+
+    current_user = get_jwt_identity()
+    admin = db.session.get(User, current_user)
+    if not admin or admin.role != "admin":
+        return jsonify({"msg": "Unauthorized"}), 403
 
     changes = []
 
@@ -126,7 +147,7 @@ def update_user(user_id):
 
     data = request.get_json()
     if not data:
-        return jsonify({"msg": "Mising data"}), 400
+        return jsonify({"msg": "Missing data"}), 400
 
     if "full_name" in data and data["full_name"] != user.full_name:
         old_name = user.full_name
@@ -219,3 +240,5 @@ def delete_user(user_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Error deleting user", "error": str(e)}), 500
+    
+

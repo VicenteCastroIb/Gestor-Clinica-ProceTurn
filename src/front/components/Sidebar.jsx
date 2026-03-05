@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useState, useRef, useEffect, useContext } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import "../styles/sidebar.css";
@@ -66,8 +66,10 @@ export const Sidebar = () => {
             .join(' ');
     };
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        dispatch({
+            type: "logout",
+            payloasd: null
+        });
         window.location.href = "/login";
     };
     useEffect(() => {

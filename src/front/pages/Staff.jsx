@@ -1,35 +1,29 @@
 import React, { useContext, useEffect } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import { useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
+import { useApi } from "../hooks/useApi";
 
 export const Staff = () => {
     const navigate = useNavigate()
     const { store, dispatch } = useContext(StoreContext);
+    const apiFetch = useApi();
 
     const getStaff = async () => {
-        const backendURL = import.meta.env.VITE_BACKEND_URL;
-        const url = `${backendURL}/api/users`;
+        const response = await apiFetch("/api/users");
 
-        try {
-            console.log("Intentando fetch a:", url);
-            const response = await fetch(url, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${store.token}`
-                }
-            });
-            if (!response.ok) throw new Error("Error loading staff");
-            const data = await response.json();
+        if (!response) return;
 
-
-            dispatch({
-                type: "set_staff_list",
-                payload: data.users
-            });
-        } catch (error) {
-            console.error("Error loading staff:", error);
+        if (!response.ok) {
+            console.error("Error loading staff");
+            return;
         }
+
+        const data = await response.json();
+        dispatch({
+            type: "set_staff_list",
+            payload: data.users
+        });
     };
 
     useEffect(() => {
@@ -41,7 +35,7 @@ export const Staff = () => {
             type: "set_user",
             payload: user
         });
-        navigate("/editUser"); 
+        navigate("/editUser");
     };
 
     return (
@@ -51,9 +45,9 @@ export const Staff = () => {
                     <h2 className="fw-bold mb-1" style={{ color: "#1e293b" }}>Personal Administrativo</h2>
                     <p className="text-muted">Gestiona tu equipo</p>
                 </div>
-                <button className="btn btn-primary px-4 py-2 fw-semibold shadow-sm" style={{ backgroundColor: "#000000" }}>
+                <NavLink to="/signup" className="btn btn-primary px-4 py-2 fw-semibold shadow-sm" style={{ backgroundColor: "#000000" }}>
                     + Agregar Personal
-                </button>
+                </NavLink>
             </div>
 
             <div className="row g-3 mb-5">

@@ -20,7 +20,10 @@ class User(db.Model):
         DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    is_active: Mapped[bool] = mapped_column(Boolean(), default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean(), default=True, nullable=False)
+    login_attempts = db.Column(db.Integer, default=0)
+    is_locked = db.Column(db.Boolean, default=False)
 
     def serialize(self):
         return {

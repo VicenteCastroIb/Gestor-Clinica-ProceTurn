@@ -2,28 +2,35 @@ import React, { useContext, useEffect } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "react-router-dom";
-import { useApi } from "../hooks/useApi";
 
 export const Staff = () => {
     const navigate = useNavigate()
     const { store, dispatch } = useContext(StoreContext);
-    const apiFetch = useApi();
 
     const getStaff = async () => {
-        const response = await apiFetch("/api/users");
+        const backendURL = import.meta.env.VITE_BACKEND_URL;
+        const url = `${backendURL}/api/users`;
 
-        if (!response) return;
+        try {
+            console.log("Intentando fetch a:", url);
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${store.token}`
+                }
+            });
+            if (!response.ok) throw new Error("Error loading staff");
+            const data = await response.json();
 
-        if (!response.ok) {
-            console.error("Error loading staff");
-            return;
+
+            dispatch({
+                type: "set_staff_list",
+                payload: data.users
+            });
+        } catch (error) {
+            console.error("Error loading staff:", error);
         }
-
-        const data = await response.json();
-        dispatch({
-            type: "set_staff_list",
-            payload: data.users
-        });
     };
 
     useEffect(() => {

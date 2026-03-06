@@ -11,19 +11,16 @@ class User(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     role: Mapped[str] = mapped_column(String(20), nullable=False)
     full_name: Mapped[str] = mapped_column(String(120), nullable=False)
-    dni: Mapped[int] = mapped_column(nullable=False, unique=True)
-    affiliate_number: Mapped[int] = mapped_column(nullable=False, unique=True)
+    dni: Mapped[str] = mapped_column(String(25), nullable=False, unique=True)
     email: Mapped[str] = mapped_column(
         String(120), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(30), nullable=False)
-    phone: Mapped[int] = mapped_column(unique=True)
-    status: Mapped[bool] = mapped_column(
-        Boolean(), default=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    phone: Mapped[str] = mapped_column(String(20), unique=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean(), default=True, nullable=False)
 
     def serialize(self):
         return {

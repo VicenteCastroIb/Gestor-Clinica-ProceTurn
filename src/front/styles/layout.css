@@ -1,0 +1,13 @@
+.app-wrapper {
+  display: flex;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.page-body {
+  padding: 0;
+}

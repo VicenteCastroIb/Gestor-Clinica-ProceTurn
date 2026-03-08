@@ -47,14 +47,18 @@ def signup():
     full_name = data.get('full_name', None)
     phone = data.get('phone', None)
 
-    if not email or not password or not role:
-        return jsonify({"msg": "Missing email or password or role"}), 400
+    if not email or not password or not role or not dni or not full_name or not phone:
+        return jsonify({"msg": "All fields are required"}), 400
 
     password_hash = generate_password_hash(password)
 
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({"msg": "User already exists"}), 409
+    existing_dni = User.query.filter_by(dni=dni).first()
+    if existing_dni:
+        return jsonify({"msg": "DNI already exists"}), 409
+
 
     new_user = User(email=email,
                     password_hash=password_hash,
@@ -78,15 +82,27 @@ def login():
         return jsonify({"msg": "Missing email or password"}), 400
 
     user = User.query.filter_by(email=email).first()
+    if user and user.is_locked:
+        return jsonify({"msg": "Account locked. Contact support to unlock."}), 401
     if not user or not check_password_hash(user.password_hash, password):
+        if user and user.role == "admin":
+            user.login_attempts = (user.login_attempts or 0) + 1
+            if user.login_attempts >= 3:
+                user.is_locked = True
+            db.session.commit()       
         return jsonify({"msg": "Invalid credentials"}), 401
-
     if user.role == "admin":
         dni = data.get('dni')
         if not dni or dni != user.dni:
+            user.login_attempts = (user.login_attempts or 0) + 1
+            if user.login_attempts >= 3:
+                user.is_locked = True
+            db.session.commit()      
             return jsonify({"msg": "Invalid DNI"}), 401
 
     access_token = create_access_token(identity=str(user.id))
+    user.login_attempts = 0
+    db.session.commit()
     return jsonify(access_token=access_token, user=user.serialize()), 200
 
 # Admin only endpoint - get all users
@@ -129,10 +145,12 @@ def update_user(user_id):
 
     current_user = get_jwt_identity()
     admin = db.session.get(User, current_user)
+
     if not admin or admin.role != "admin":
         return jsonify({"msg": "Unauthorized"}), 403
 
     changes = []
+    deactivated_now = False
 
     def change_register(data, old, new):
         return {
@@ -154,8 +172,7 @@ def update_user(user_id):
     if "full_name" in data and data["full_name"] != user.full_name:
         old_name = user.full_name
         user.full_name = data["full_name"]
-        new_name = user.full_name
-        changes.append(change_register("full_name", old_name, new_name))
+        changes.append(change_register("full_name", old_name, user.full_name))
 
     if "dni" in data and data["dni"] != user.dni:
         exist_dni = db.session.execute(select(User).where(
@@ -164,8 +181,7 @@ def update_user(user_id):
             return jsonify({"msg": "dni already exist"}), 400
         old_dni = user.dni
         user.dni = data["dni"]
-        new_dni = user.dni
-        changes.append(change_register("dni", old_dni, new_dni))
+        changes.append(change_register("dni", old_dni, user.dni))
 
     if "email" in data and data["email"] != user.email:
         email_exist = db.session.execute(select(User).where(
@@ -174,44 +190,54 @@ def update_user(user_id):
             return jsonify({"msg": "email already exist"}), 400
         old_email = user.email
         user.email = data["email"]
-        new_email = user.email
-        changes.append(change_register("email", old_email, new_email))
+        changes.append(change_register("email", old_email, user.email))
 
     if "phone" in data and data["phone"] != user.phone:
         old_phone = user.phone
         user.phone = data["phone"]
-        new_phone = user.phone
-        changes.append(change_register("phone", old_phone, new_phone))
+        changes.append(change_register("phone", old_phone, user.phone))
 
     if "is_active" in data and data["is_active"] != user.is_active:
         old_active = user.is_active
         user.is_active = data["is_active"]
-        new_active = user.is_active
-        changes.append(change_register("is_active", old_active, new_active))
+        changes.append(change_register("is_active", old_active, user.is_active))
+        if old_active is True and user.is_active is False:
+            deactivated_now = True
 
     if "role" in data and data["role"] != user.role:
         old_role = user.role
-        new_role = data["role"]
-        user.role = new_role
-        changes.append({
-            "field": "role",
-            "old": old_role,
-            "new": new_role
-        })
+        user.role = data["role"]
+        changes.append(change_register("role", old_role, user.role))
 
     if not changes:
         return jsonify({"msg": "No changes detected"}), 400
 
     db.session.commit()
 
+    if deactivated_now:
+        msg = Message(
+            subject="Aviso: Tu cuenta ha sido deshabilitada",
+            sender=current_app.config['MAIL_USERNAME'],
+            recipients=[user.email],
+            body=f"Hola {user.full_name}, te informamos que tu cuenta ha sido desactivada por un administrador."
+        )
+        current_app.extensions['mail'].send(msg)
+
     current_admin = get_jwt_identity()
     date_time = datetime.now(timezone.utc)
 
     changes_resume = {
-        "modified_by": current_admin,
-        "user_modified": user.id,
-        "changes": changes,
-        "date_time": date_time.isoformat(),
+        "modified_by": {
+            "id": admin.id,
+            "name": admin.full_name,
+            "role": admin.role
+        },
+        "target_user": {
+            "id": user.id,
+            "name": user.full_name
+        },
+        "details": changes,
+        "timestamp": date_time.isoformat()
     }
 
     response = {

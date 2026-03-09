@@ -184,3 +184,22 @@ class ProcedureAvailability(db.Model):
             "start_time": self.start_time.strftime("%H:%M:%S"),
             "end_time": self.end_time.strftime("%H:%M:%S")
         }
+
+class BlockedSlot(db.Model):
+    __tablename__ = "blocked_slots"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    start_date_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end_date_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "start_date_time": self.start_date_time.isoformat(),
+            "end_date_time": self.end_date_time.isoformat(),
+            "reason": self.reason,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }

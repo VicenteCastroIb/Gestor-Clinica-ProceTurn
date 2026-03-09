@@ -21,6 +21,7 @@ export const router = createBrowserRouter(
     <>
       <Route path="/login" element={<Login />} />
       {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}
+      {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>

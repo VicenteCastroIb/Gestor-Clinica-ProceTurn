@@ -3,12 +3,12 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 import os
 from flask import Flask, request, jsonify, url_for, Blueprint, current_app
-from api.models import db, User
+from api.models import db, User, Appointment
 from api.utils import generate_sitemap, APIException, generate_reset_token, verify_reset_token
 from flask_mail import Message
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import select
+from sqlalchemy import select, extract
 from datetime import datetime, timezone, timedelta
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
@@ -299,7 +299,6 @@ def forgot_password():
 
         current_app.extensions['mail'].send(msg)
 
-    # 🔐 Seguridad: no revelar si el email existe
     return jsonify({
         "msg": "If that email exists, a recovery link has been sent."
     }), 200
@@ -335,3 +334,20 @@ def reset_password():
     return jsonify({
         "msg": "Password has been reset successfully"
     }), 200
+
+
+@api.route('/appointments', methods=['GET'])
+@jwt_required()
+def get_appointments():
+    month = request.args.get('month', default=datetime.now().month, type=int)
+    year = request.args.get('year', default=datetime.now().year, type=int)
+
+    stmt = select(Appointment).where(
+        extract('month', Appointment.start_date_time) == month,
+        extract('year', Appointment.start_date_time) == year
+    )
+
+    result = db.session.execute(stmt)
+    appointments = result.scalars().all()
+
+    return jsonify([appo.serialize() for appo in appointments]), 200

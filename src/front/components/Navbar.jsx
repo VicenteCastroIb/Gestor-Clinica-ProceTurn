@@ -1,7 +1,36 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
 import "../styles/navbar.css";
 
 export const Navbar = () => {
+	const location = useLocation();
+
+	const isCalendarView = location.pathname === "/calendar";
+
+	if (isCalendarView) {
+		return (
+			<nav className="navbar navbar-calendar-style border-bottom bg-white px-4 py-2">
+				<div className="container-fluid d-flex justify-content-between align-items-center">
+					<h5 className="m-0 fw-bold text-dark">AI Demand & Waitlist Control Center</h5>
+					<div className="d-flex align-items-center gap-3">
+						<div className="search-box-pill d-none d-md-flex align-items-center px-3 py-1">
+							<i className="bi bi-search text-muted me-2" style={{ fontSize: "0.9rem" }}></i>
+							<input type="text" placeholder="Search appointments, patients..." className="search-input-clean" />
+						</div>
+						<div className="position-relative mx-2 cursor-pointer">
+							<i className="bi bi-bell fs-5 text-secondary"></i>
+							<span className="notification-dot"></span>
+						</div>
+						<button className="btn btn-dark rounded-3 px-4 fw-bold btn-new-appo">
+							<i className="bi"></i>
+							+ New Appointment
+						</button>
+					</div>
+				</div>
+			</nav>
+		);
+	}
+
 	return (
 		<nav className="navbar">
 			<h2 className="nav-title">Dashboard</h2>

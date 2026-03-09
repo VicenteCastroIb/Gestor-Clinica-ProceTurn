@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import { EditUser } from "./pages/EditUser";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Staff } from "./pages/Staff";
+import { Calendar } from "./pages/Calendar";
 export const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -21,6 +22,7 @@ export const router = createBrowserRouter(
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/single/:theId" element={<ProtectedRoute><Single /></ProtectedRoute>} />
         <Route path="/demo" element={<ProtectedRoute><Demo /></ProtectedRoute>} />
+        <Route path="/calendar" element={<ProtectedRoute adminOnly><Calendar /></ProtectedRoute>} />
         <Route path="/signup" element={<ProtectedRoute adminOnly><Signup /></ProtectedRoute>} />
         <Route path="/staff" element={<ProtectedRoute adminOnly><Staff /></ProtectedRoute>} />
         <Route path="/editUser" element={<ProtectedRoute adminOnly><EditUser /></ProtectedRoute>} />

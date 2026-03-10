@@ -9,7 +9,7 @@ from flask_mail import Message
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import select, extract
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 api = Blueprint('api', __name__)
@@ -337,14 +337,19 @@ def reset_password():
     }), 200
 
 
-@api.route('/appointments', methods=['POST'])
-@jwt_required() 
+@api.route('/create-appointments', methods=['POST'])
+@jwt_required()
 def create_appointment():
     body = request.get_json()
 
+    patient = Patient.query.filter_by(dni=body['dni']).first()
+        
+    if not patient:
+        return jsonify({"msg": "No existe ningún paciente registrado con ese DNI"}), 404
+
     required_fields = [
-        "start_date_time", "end_date_time", "patient_id", 
-        "user_id", "specialty_id", "procedure_id"
+        "start_date_time", "end_date_time", 
+        "user_id", "specialty_id", "procedure_id", "dni"
     ]
     for field in required_fields:
         if field not in body or not body[field]:
@@ -357,11 +362,11 @@ def create_appointment():
         new_appointment = Appointment(
             start_date_time=start_dt,
             end_date_time=end_dt,
-            patient_id=body['patient_id'],
+            patient_id=patient.id,
             user_id=body['user_id'],
             specialty_id=body['specialty_id'],
             procedure_id=body['procedure_id'],
-            notes=body['procedure_id'], 
+            notes=body['notes'], 
             status="scheduled",
             confirmed=False
         )
@@ -379,6 +384,7 @@ def create_appointment():
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Error en el servidor", "error": str(e)}), 500
+    
 @api.route('/appointments', methods=['GET'])
 @jwt_required()
 def get_appointments():
@@ -394,3 +400,56 @@ def get_appointments():
     appointments = result.scalars().all()
 
     return jsonify([appo.serialize() for appo in appointments]), 200
+
+@api.route('/patients', methods=['POST'])
+def create_patient():
+    body = request.get_json()
+
+    
+    if not body.get("full_name") or not body.get("dni") or not body.get("birth_date"):
+        return jsonify({"msg": "Nombre, DNI y Fecha de Nacimiento son obligatorios"}), 400
+
+    existing_patient = Patient.query.filter_by(dni=body["dni"]).first()
+    if existing_patient:
+        return jsonify({"msg": "Ya existe un paciente registrado con este DNI"}), 400
+
+    try:
+        
+        birth_date_obj = date.fromisoformat(body['birth_date'])
+
+        new_patient = Patient(
+            full_name=body["full_name"],
+            dni=body["dni"],
+            phone=body.get("phone"),
+            email=body.get("email"),
+            birth_date=birth_date_obj,
+            gender=body.get("gender"),
+            address=body.get("address"),
+            is_active=True
+        )
+
+        db.session.add(new_patient)
+        db.session.commit()
+
+        return jsonify({"msg": "Paciente creado con éxito", "patient": new_patient.serialize()}), 201
+
+    except ValueError:
+        return jsonify({"msg": "Formato de fecha de nacimiento inválido"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": "Error interno del servidor", "error": str(e)}), 500
+    
+
+@api.route('/specialties', methods=['GET'])
+@jwt_required()
+def specialties():
+    specialties = Specialty.query.all()
+    return jsonify([specialty.serialize() for specialty in specialties]), 200
+
+@api.route('/procedures', methods=['GET'])
+@jwt_required()
+def procedures():
+    procedures = Procedure.query.all()
+    return jsonify([procedure.serialize() for procedure in procedures]), 200
+
+  

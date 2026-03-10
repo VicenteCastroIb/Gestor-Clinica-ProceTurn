@@ -50,7 +50,7 @@ export default function storeReducer(store, action = {}) {
       };
     case "set_appointments":
       return{
-        ...StaticRange,
+        ...store,
         appointments: action.payload
       };
 

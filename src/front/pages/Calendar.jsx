@@ -1,10 +1,10 @@
-import React, { useEffect, useContext, useState } from "react";
+import { useEffect, useContext, useState } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import "../styles/calendar.css";
 
 export const Calendar = () => {
     const { store, dispatch } = useContext(StoreContext);
-    const [viewDate, setViewDate] = useState(new Date(2025, 2, 1));
+    const [viewDate, setViewDate] = useState(new Date());
 
     const [showDayModal, setShowDayModal] = useState(false);
     const [selectedDayAppointments, setSelectedDayAppointments] = useState([]);
@@ -14,13 +14,21 @@ export const Calendar = () => {
     const currentMonthName = monthNames[viewDate.getMonth()];
     const currentYear = viewDate.getFullYear();
 
+    const [blockedSlots, setBlockedSlots] = useState([]);
+    const [showBlockModal, setShowBlockModal] = useState(false);
+    const [blockForm, setBlockForm] = useState({
+        start_date_time: "",
+        end_date_time: "",
+        reason: ""
+    });
+
     const loadData = async () => {
         const token = localStorage.getItem("token");
         const month = viewDate.getMonth() + 1;
         const year = viewDate.getFullYear();
 
         try {
-            const resp = await fetch(`${process.env.BACKEND_URL}/api/appointments?month=${month}&year=${year}`, {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments?month=${month}&year=${year}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (resp.ok) {
@@ -28,6 +36,16 @@ export const Calendar = () => {
                 dispatch({ type: "set_appointments", payload: data });
             }
         } catch (err) { console.error("Error cargando turnos:", err); }
+
+        try {
+            const resp2 = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/blocked-slots?month=${month}&year=${year}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (resp2.ok) {
+                const data2 = await resp2.json();
+                setBlockedSlots(data2);
+            }
+        } catch (err) { console.error("Error cargando slots bloqueados:", err); }
     };
 
     useEffect(() => {
@@ -37,7 +55,7 @@ export const Calendar = () => {
     const updateAppointmentStatus = async (appoId, newStatus) => {
         const token = localStorage.getItem("token");
         try {
-            const resp = await fetch(`${process.env.BACKEND_URL}/api/appointments/${appoId}`, {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appoId}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -56,6 +74,37 @@ export const Calendar = () => {
         }
     };
 
+    const handleCreateBlock = async () => {
+        const confirmed = window.confirm("¿Estás seguro de bloquear este slot?");
+        if (!confirmed) return;
+
+        const token = localStorage.getItem("token");
+        try {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/blocked-slots`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(blockForm)
+            });
+            if (resp.ok) {
+                setShowBlockModal(false);
+                setBlockForm({
+                    start_date_time: "",
+                    end_date_time: "",
+                    reason: ""
+                });
+                await loadData();
+            } else {
+                const error = await resp.json();
+                alert(error.msg || "Error al crear el bloqueo.");
+            }
+        } catch (err) {
+            console.error("Error al crear el bloqueo:", err);
+        }
+    }
+
     const handleDayClick = (dayNumber) => {
         const dayAppos = store.appointments?.filter(a => new Date(a.start_date_time).getDate() === dayNumber) || [];
         if (dayAppos.length > 0) {
@@ -73,18 +122,27 @@ export const Calendar = () => {
         const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
         const monthShort = currentMonthName.substring(0, 3);
 
-        for (let i = 1; i <= daysInMonth; i++) {
-            const allDayAppos = store.appointments?.filter(a => new Date(a.start_date_time).getDate() === i) || [];
+        for (let day = 1; day <= daysInMonth; day++) {
+            const allDayAppos = store.appointments?.filter(a => new Date(a.start_date_time).getDate() === day) || [];
             const activeAppos = allDayAppos.filter(a => a.status !== "cancelled");
 
+            const isBlocked = blockedSlots.some(slot => {
+                const slotStart = new Date(slot.start_date_time);
+                const slotEnd = new Date(slot.end_date_time);
+                const currentDay = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+                return currentDay >= slotStart && currentDay <= slotEnd;
+            });
+
+
             let colorClass = "day-available";
-            if (activeAppos.length >= 8) colorClass = "day-full";
+            if (isBlocked) colorClass = "day-blocked";
+            else if (activeAppos.length >= 8) colorClass = "day-full";
             else if (activeAppos.length >= 1) colorClass = "day-partial";
 
             days.push(
-                <div key={i} className={`calendar-day ${colorClass}`} onClick={() => handleDayClick(i)}>
+                <div key={day} className={`calendar-day ${colorClass}`} onClick={() => handleDayClick(day)}>
                     <div className="d-flex justify-content-between align-items-start">
-                        <span className="fw-bold x-small">{monthShort} {i}</span>
+                        <span className="fw-bold x-small">{monthShort} {day}</span>
                         {activeAppos.length > 0 && <span className="appo-count-badge">{activeAppos.length}</span>}
                     </div>
                     <div className="appo-dots mt-auto">
@@ -97,6 +155,19 @@ export const Calendar = () => {
         }
         return days;
     };
+
+    const PatientRow = ({ name, specialty }) => (
+        <div className="d-flex align-items-center justify-content-between p-2 rounded-3 mb-2 border bg-white shadow-sm">
+            <div className="d-flex align-items-center gap-2">
+                <div className="avatar-circle"></div>
+                <div>
+                    <p className="m-0 fw-bold x-small">{name}</p>
+                    <p className="m-0 text-muted extra-small">{specialty}</p>
+                </div>
+            </div>
+            <button className="btn btn-sm btn-outline-dark extra-small py-0 px-2">Find Slot</button>
+        </div>
+    );
 
     return (
         <div className="bg-light min-vh-100 p-4">
@@ -122,6 +193,7 @@ export const Calendar = () => {
                             <div className="d-flex justify-content-between align-items-center mb-4">
                                 <h6 className="fw-bold m-0 text-secondary">Future Availability Forecast</h6>
                                 <button className="btn btn-sm btn-dark px-3 rounded-pill">Auto-Match</button>
+                                <button className="btn btn-sm btn-danger px-3 rounded-pill" onClick={() => setShowBlockModal(true)}>Bloquear fechas</button>
                             </div>
                             <div className="d-flex align-items-center gap-3 mb-4 bg-white border rounded-3 p-2 shadow-sm w-fit-content" style={{ width: "fit-content" }}>
                                 <button onClick={handlePrevMonth} className="btn btn-sm btn-link text-dark p-0">
@@ -148,6 +220,8 @@ export const Calendar = () => {
                                 <div className="d-flex align-items-center gap-2"><div className="legend-box day-available"></div> Disponible </div>
                                 <div className="d-flex align-items-center gap-2"><div className="legend-box day-partial"></div> Parcialmente ocupado</div>
                                 <div className="d-flex align-items-center gap-2"><div className="legend-box day-full"></div> Completo</div>
+                                <div className="d-flex align-items-center gap-2"><div className="legend-box day-blocked"></div> Bloqueado</div>
+
                             </div>
                         </div>
                     </div>
@@ -192,19 +266,45 @@ export const Calendar = () => {
                     </div>
                 </div>
             )}
+
+            {showBlockModal && (
+                <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content border-0 rounded-4 shadow">
+                            <div className="modal-header border-0">
+                                <h5 className="modal-title fw-bold">Bloquear fechas</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowBlockModal(false)}></button>
+                            </div>
+                            <div className="modal-body p-4">
+                                <div className="mb-3">
+                                    <label className="form-label fw-semibold">Fecha de inicio</label>
+                                    <input type="date" className="form-control"
+                                        value={blockForm.start_date_time.split('T')[0]}
+                                        onChange={e => setBlockForm({ ...blockForm, start_date_time: e.target.value + "T00:00:00" })} />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label fw-semibold">Fecha de fin</label>
+                                    <input type="date" className="form-control"
+                                        value={blockForm.end_date_time.split('T')[0]}
+                                        onChange={e => setBlockForm({ ...blockForm, end_date_time: e.target.value + "T23:59:59" })} />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label fw-semibold">Motivo</label>
+                                    <input type="text" className="form-control" placeholder="Ej: Mantenimiento, Feriado..."
+                                        value={blockForm.reason}
+                                        onChange={e => setBlockForm({ ...blockForm, reason: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="modal-footer border-0">
+                                <button className="btn btn-outline-secondary" onClick={() => setShowBlockModal(false)}>Cancelar</button>
+                                <button className="btn btn-danger" onClick={handleCreateBlock}>Confirmar bloqueo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };
 
-const PatientRow = ({ name, specialty }) => (
-    <div className="d-flex align-items-center justify-content-between p-2 rounded-3 mb-2 border bg-white shadow-sm">
-        <div className="d-flex align-items-center gap-2">
-            <div className="avatar-circle"></div>
-            <div>
-                <p className="m-0 fw-bold x-small">{name}</p>
-                <p className="m-0 text-muted extra-small">{specialty}</p>
-            </div>
-        </div>
-        <button className="btn btn-sm btn-outline-dark extra-small py-0 px-2">Find Slot</button>
-    </div>
-);

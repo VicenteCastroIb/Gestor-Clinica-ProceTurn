@@ -3,12 +3,12 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 import os
 from flask import Flask, request, jsonify, url_for, Blueprint, current_app
-from api.models import db, User, Appointment
-from api.utils import generate_sitemap, APIException, generate_reset_token, verify_reset_token
+from api.models import db, User, Appointment, BlockedSlot
+from api.utils import generate_sitemap, APIException, generate_reset_token, verify_reset_token, get_month_date_range
 from flask_mail import Message
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import select, extract
+from sqlalchemy import select, extract, or_
 from datetime import datetime, timezone, timedelta
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
@@ -339,15 +339,71 @@ def reset_password():
 @api.route('/appointments', methods=['GET'])
 @jwt_required()
 def get_appointments():
-    month = request.args.get('month', default=datetime.now().month, type=int)
-    year = request.args.get('year', default=datetime.now().year, type=int)
+    month = request.args.get('month', type=int)
+    year = request.args.get('year', type=int)
+
+    start_date, end_date = get_month_date_range(month, year)
 
     stmt = select(Appointment).where(
-        extract('month', Appointment.start_date_time) == month,
-        extract('year', Appointment.start_date_time) == year
+        or_(
+            (Appointment.start_date_time >= start_date) & (Appointment.start_date_time <= end_date),
+            (Appointment.end_date_time >= start_date) & (Appointment.end_date_time <= end_date)
+        )
     )
 
     result = db.session.execute(stmt)
     appointments = result.scalars().all()
 
     return jsonify([appo.serialize() for appo in appointments]), 200
+
+@api.route('/blocked-slots', methods=['GET'])
+@jwt_required()
+def get_blocked_slots():
+    month = request.args.get('month', type=int)
+    year = request.args.get('year', type=int)
+
+    start_date, end_date = get_month_date_range(month, year)
+
+    stmt = select(BlockedSlot).where(
+        or_(
+            (BlockedSlot.start_date_time >= start_date) & (BlockedSlot.start_date_time <= end_date),
+            (BlockedSlot.end_date_time >= start_date) & (BlockedSlot.end_date_time <= end_date)
+        )
+    )
+    result = db.session.execute(stmt)
+    blocked_slots = result.scalars().all()
+    return jsonify([slot.serialize() for slot in blocked_slots]), 200
+
+@api.route('/blocked-slots', methods=['POST'])
+@jwt_required()
+def create_blocked_slot():
+    data = request.get_json()
+    start = data.get('start_date_time')
+    end = data.get('end_date_time')
+    reason = data.get('reason')
+
+    if not start or not end:
+        return jsonify({"msg": "start_date_time y end_date_time son requeridos"}), 400
+
+    if not reason:
+        return jsonify({"msg": "reason es requerido"}), 400
+
+    start_date_time = datetime.fromisoformat(start)
+    end_date_time = datetime.fromisoformat(end)
+    conflicting = Appointment.query.filter(
+        Appointment.start_date_time < end_date_time,
+        Appointment.end_date_time > start_date_time
+    ).first()
+
+    if conflicting:
+        return jsonify({"msg": "Hay turnos programados en este horario"}), 409
+
+    new_block = BlockedSlot(
+        start_date_time=start_date_time,
+        end_date_time=end_date_time,
+        reason=reason,
+    )
+
+    db.session.add(new_block)
+    db.session.commit()
+    return jsonify(new_block.serialize()), 201

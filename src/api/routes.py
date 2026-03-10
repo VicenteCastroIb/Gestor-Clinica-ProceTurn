@@ -341,11 +341,14 @@ def reset_password():
 @jwt_required()
 def create_appointment():
     body = request.get_json()
-
-    patient = Patient.query.filter_by(dni=body['dni']).first()
         
+    if 'dni' not in body or not body['dni']:
+        return jsonify({"msg": "DNI is required to identify the patient"}), 400
+    
+    patient = Patient.query.filter_by(dni=body['dni']).first()
+
     if not patient:
-        return jsonify({"msg": "No existe ningún paciente registrado con ese DNI"}), 404
+        return jsonify({"msg": "No patient found registered with this DNI"}), 404
 
     required_fields = [
         "start_date_time", "end_date_time", 
@@ -353,7 +356,7 @@ def create_appointment():
     ]
     for field in required_fields:
         if field not in body or not body[field]:
-            return jsonify({"msg": f"El campo {field} es obligatorio"}), 400
+            return jsonify({"msg": f"The field '{field}' is required"}), 400
 
     try:
         start_dt = datetime.fromisoformat(body['start_date_time'])
@@ -375,16 +378,16 @@ def create_appointment():
         db.session.commit()
 
         return jsonify({
-            "msg": "Turno creado exitosamente",
+            "msg": "Appointment created successfully",
             "appointment": new_appointment.serialize()
         }), 201
 
     except ValueError as e:
-        return jsonify({"msg": "Formato de fecha inválido", "error": str(e)}), 400
+        return jsonify({"msg": "Invalid date format", "error": str(e)}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({"msg": "Error en el servidor", "error": str(e)}), 500
-    
+        return jsonify({"msg": "Internal server error", "error": str(e)}), 500
+
 @api.route('/appointments', methods=['GET'])
 @jwt_required()
 def get_appointments():
@@ -401,17 +404,17 @@ def get_appointments():
 
     return jsonify([appo.serialize() for appo in appointments]), 200
 
-@api.route('/patients', methods=['POST'])
+@api.route('/patients', methods=['POST']) #Este endpoint es solo para crear población de prueba, no se expone en el frontend
 def create_patient():
     body = request.get_json()
 
     
     if not body.get("full_name") or not body.get("dni") or not body.get("birth_date"):
-        return jsonify({"msg": "Nombre, DNI y Fecha de Nacimiento son obligatorios"}), 400
+        return jsonify({"msg": "Full name, DNI, and Birth date are required"}), 400
 
     existing_patient = Patient.query.filter_by(dni=body["dni"]).first()
     if existing_patient:
-        return jsonify({"msg": "Ya existe un paciente registrado con este DNI"}), 400
+        return jsonify({"msg": "A patient with this DNI is already registered"}), 400
 
     try:
         
@@ -431,13 +434,13 @@ def create_patient():
         db.session.add(new_patient)
         db.session.commit()
 
-        return jsonify({"msg": "Paciente creado con éxito", "patient": new_patient.serialize()}), 201
+        return jsonify({"msg": "Patient created successfully", "patient": new_patient.serialize()}), 201
 
     except ValueError:
-        return jsonify({"msg": "Formato de fecha de nacimiento inválido"}), 400
+        return jsonify({"msg": "Invalid birth date format"}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({"msg": "Error interno del servidor", "error": str(e)}), 500
+        return jsonify({"msg": "Internal server error", "error": str(e)}), 500
     
 
 @api.route('/specialties', methods=['GET'])

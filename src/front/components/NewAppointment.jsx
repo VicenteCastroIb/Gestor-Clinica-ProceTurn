@@ -115,7 +115,6 @@ const NewAppointment = () => {
                                         required
                                     >
                                         <option value="">{loadingMedicalData ? "Cargando..." : "Seleccione procedimiento"}</option>
-                                        {/* Opcional: Filtrar procedimientos según la especialidad elegida */}
                                         {procedures
                                             .filter(proc => !formData.specialty_id || proc.specialty_id == formData.specialty_id)
                                             .map(proc => (

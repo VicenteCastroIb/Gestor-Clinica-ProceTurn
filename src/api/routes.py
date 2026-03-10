@@ -421,12 +421,6 @@ def get_appointments():
 
     return jsonify([appo.serialize() for appo in appointments]), 200
 
-@api.route('/procedures', methods=['GET'])
-@jwt_required()
-def get_procedures():
-    procedures = Procedure.query.all()
-    return jsonify([p.serialize() for p in procedures]), 200
-
 @api.route('/patients', methods=['POST']) #Este endpoint es solo para crear población de prueba, no se expone en el frontend
 def create_patient():
     body = request.get_json()
@@ -478,4 +472,4 @@ def procedures():
     procedures = Procedure.query.all()
     return jsonify([procedure.serialize() for procedure in procedures]), 200
 
-  
+

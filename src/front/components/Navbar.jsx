@@ -15,11 +15,11 @@ export const Navbar = () => {
 		return (
 			<nav className="navbar navbar-calendar-style border-bottom bg-white px-4 py-2">
 				<div className="container-fluid d-flex justify-content-between align-items-center">
-					<h5 className="m-0 fw-bold text-dark">AI Demand & Waitlist Control Center</h5>
+					<h5 className="m-0 fw-bold text-dark">Centro de Control de Turnos y Pacientes</h5>
 					<div className="d-flex align-items-center gap-3">
 						<div className="search-box-pill d-none d-md-flex align-items-center px-3 py-1">
 							<i className="bi bi-search text-muted me-2" style={{ fontSize: "0.9rem" }}></i>
-							<input type="text" placeholder="Search appointments, patients..." className="search-input-clean" />
+							<input type="text" placeholder="Buscar turnos, pacientes..." className="search-input-clean" />
 						</div>
 						<div className="position-relative mx-2 cursor-pointer">
 							<i className="bi bi-bell fs-5 text-secondary"></i>
@@ -27,7 +27,7 @@ export const Navbar = () => {
 						</div>
 						<button className="btn btn-dark rounded-3 px-4 fw-bold btn-new-appo">
 							<i className="bi"></i>
-							+ New Appointment
+							+ Nuevo Turno
 						</button>
 					</div>
 				</div>
@@ -41,10 +41,10 @@ export const Navbar = () => {
 			<div className="nav-right">
 				<div className="search-box">
 					<i className="bi bi-search"></i>
-					<input type="text" placeholder="Search..." />
+					<input type="text" placeholder="Buscar..." />
 				</div>
 				<button className="btn-appointment" onClick={() => navigate("/new-appointment")}>
-					+ New Appointment
+					+ Nuevo Turno
 				</button>
 			</div>
 		</nav>

@@ -96,29 +96,29 @@ export const Sidebar = () => {
                 </div>
                 <nav className="sidebar-nav">
                     <NavLink to="/" className="sidebar-nav-item">
-                        <h1> Dashboard </h1>
+                        <h1> Tablero </h1>
                     </NavLink>
                     <NavLink to="/calendar" className="sidebar-nav-item">
-                        <h1> Calendar </h1>
+                        <h1> Calendario </h1>
                     </NavLink>
                     <NavLink to="/patients" className="sidebar-nav-item">
-                        <h1> Patients </h1>
+                        <h1> Pacientes </h1>
                     </NavLink>
                     <NavLink to="/messages" className="sidebar-nav-item">
-                        <h1> Messages </h1>
+                        <h1> Mensajes </h1>
                     </NavLink>
                     <NavLink to="/staff" className="sidebar-nav-item">
-                        <h1> Staff </h1>
+                        <h1> Personal </h1>
                     </NavLink>
                 </nav>
                 <div className="profile-container">
                     {isOpen && (
                         <div className="dropdown-menu-up" ref={dropdownMenuRef}>
                             <ul>
-                                <li> {svgProfile} View Profile</li>
-                                <li> {svgSettings} Settings</li>
+                                <li> {svgProfile} Ver Perfil</li>
+                                <li> {svgSettings} Opciones</li>
                                 <li className="logout" data-bs-target="#confirmEditModalSession" data-bs-toggle="modal">
-                                    {svgLogout} Log Out
+                                    {svgLogout} Cerrar Sesión
                                 </li>
                             </ul>
                         </div>

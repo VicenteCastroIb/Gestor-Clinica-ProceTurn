@@ -87,7 +87,7 @@ export const Staff = () => {
                                     <div className="d-flex gap-3">
                                         <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-primary"
                                             style={{ width: "60px", height: "60px", backgroundColor: "#e0e7ff", fontSize: "1.2rem" }}>
-                                            {user.full_name ? user.full_name.split(" ").map(user => user[0]).join("") : "Unknown"}
+                                            {user.full_name ? user.full_name.split(" ").map(user => user[0]).join("") : "Desc."}
                                         </div>
                                         <div>
                                             <div className="d-flex align-items-center gap-2">

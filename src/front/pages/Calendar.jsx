@@ -13,7 +13,7 @@ export const Calendar = () => {
     const [showDayModal, setShowDayModal] = useState(false);
     const [selectedDayNumber, setSelectedDayNumber] = useState(null);
 
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     const currentMonthName = monthNames[viewDate.getMonth()];
     const currentYear = viewDate.getFullYear();
 
@@ -211,7 +211,7 @@ export const Calendar = () => {
                     <p className="m-0 text-muted extra-small">{specialty}</p>
                 </div>
             </div>
-            <button className="btn btn-sm btn-outline-dark extra-small py-0 px-2">Find Slot</button>
+            <button className="btn btn-sm btn-outline-dark extra-small py-0 px-2">Asignar turno</button>
         </div>
     );
 
@@ -259,23 +259,23 @@ export const Calendar = () => {
                 <div className="row g-4">
                     <div className="col-lg-4">
                         <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
-                            <h6 className="fw-bold mb-4 ms-1">Active Waitlist</h6>
+                            <h6 className="fw-bold mb-4 ms-1">Lista de Espera Activa</h6>
                             <div className="mb-4">
-                                <p className="section-title urgent py-1 px-2 rounded mb-3">URGENT (NEXT 48H)</p>
-                                <PatientRow name="Elena Gomez" specialty="Cardiology" />
-                                <PatientRow name="Raj Patel" specialty="Dermatology" />
+                                <p className="section-title urgent py-1 px-2 rounded mb-3">URGENTE (PRÓXIMAS 48H)</p>
+                                <PatientRow name="Elena Gomez" specialty="Cardiología" />
+                                <PatientRow name="Raj Patel" specialty="Dermatología" />
                             </div>
                             <div>
-                                <p className="section-title routine py-1 px-2 rounded mb-3">ROUTINE (NEXT 2 WEEKS)</p>
-                                <PatientRow name="Adam Cooper" specialty="Dermatology" />
+                                <p className="section-title routine py-1 px-2 rounded mb-3">RUTINA (PRÓXIMAS 2 SEMANAS)</p>
+                                <PatientRow name="Adam Cooper" specialty="Dermatología" />
                             </div>
                         </div>
                     </div>
                     <div className="col-lg-8">
                         <div className="card border-0 shadow-sm rounded-4 p-4">
                             <div className="d-flex justify-content-between align-items-center mb-4">
-                                <h6 className="fw-bold m-0 text-secondary">Future Availability Forecast</h6>
-                                <button className="btn btn-sm btn-dark px-3 rounded-pill">Auto-Match</button>
+                                <h6 className="fw-bold m-0 text-secondary">Pronóstico de Disponibilidad Próxima</h6>
+                                <button className="btn btn-sm btn-dark px-3 rounded-pill">Asignación Automática</button>
                                 <button className="btn btn-sm btn-danger px-3 rounded-pill" onClick={() => setShowSlotModal(true)}>Bloquear fechas</button>
                             </div>
                             <div className="d-flex align-items-center gap-3 mb-4 bg-white border rounded-3 p-2 shadow-sm w-fit-content" style={{ width: "fit-content" }}>
@@ -291,7 +291,7 @@ export const Calendar = () => {
                             </div>
 
                             <div className="calendar-weekdays mb-2 text-center">
-                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => (
                                     <div key={d} className="fw-bold text-muted x-small">{d}</div>
                                 ))}
                             </div>
@@ -317,14 +317,14 @@ export const Calendar = () => {
                         <div className="modal-content border-0 rounded-4 shadow">
                             <div className="modal-header border-0 d-flex gap-4 align-items-center position-relative">
                                 <h5 className="modal-title fw-bold">
-                                    Appointments for {currentMonthName} {selectedDayNumber}
+                                    Turnos para el {selectedDayNumber} de {currentMonthName}
                                 </h5>
                                 <button
                                     type="button"
                                     className="btn btn-dark mx-5"
                                     onClick={() => console.log("Abrir formulario de cita")}
                                 >
-                                    + New Appointment
+                                    + Nuevo turno
                                 </button>
                                 <button
                                     type="button"
@@ -384,15 +384,15 @@ export const Calendar = () => {
                                                         {new Date(appo.start_date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - <strong>{appo.procedure_name}</strong>
                                                     </p>
                                                     <span className={`badge mt-2 bg-${appo.status === 'confirmed' ? 'success' : appo.status === 'cancelled' ? 'danger' : 'warning'}`}>
-                                                        {appo.status.toUpperCase()}
+                                                        {appo.status === 'confirmed' ? 'CONFIRMADO' : appo.status === 'cancelled' ? 'CANCELADO' : appo.status.toUpperCase()}
                                                     </span>
                                                 </div>
                                                 <div className="d-flex gap-2">
                                                     {appo.status !== 'confirmed' && appo.status !== 'cancelled' && (
-                                                        <button className="btn btn-success btn-sm rounded-3" onClick={() => updateAppointmentStatus(appo.id, 'confirmed')}>Confirm</button>
+                                                        <button className="btn btn-success btn-sm rounded-3" onClick={() => updateAppointmentStatus(appo.id, 'confirmed')}>Confirmar</button>
                                                     )}
                                                     {appo.status !== 'cancelled' && (
-                                                        <button className="btn btn-outline-danger btn-sm rounded-3" onClick={() => updateAppointmentStatus(appo.id, 'cancelled')}>Cancel</button>
+                                                        <button className="btn btn-outline-danger btn-sm rounded-3" onClick={() => updateAppointmentStatus(appo.id, 'cancelled')}>Cancelar</button>
                                                     )}
                                                 </div>
                                             </div>

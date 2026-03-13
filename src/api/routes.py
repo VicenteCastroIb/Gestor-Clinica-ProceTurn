@@ -411,7 +411,7 @@ def create_appointment():
             user_id=body['user_id'],
             specialty_id=body['specialty_id'],
             procedure_id=body['procedure_id'],
-            notes=body.get['notes', None], 
+            notes=body.get('notes', None), 
             status="scheduled",
             confirmed=False
         )
@@ -443,7 +443,11 @@ def update_appointment_status(appo_id):
     appointment.status = new_status
     if new_status == "confirmed":
         appointment.confirmed = True
-    
+
+    if new_status == "cancelled":
+        appointment.cancellation_date = datetime.now(timezone.utc)
+        appointment.cancellation_reason = body.get("cancellation_reason", None)
+
     db.session.commit()
     return jsonify({"msg": f"Turno actualizado a {new_status}"}), 200
 
@@ -589,10 +593,11 @@ def get_procedure_capacity():
         results = []
         for slot in slots:
             start_dt = datetime.combine(selected_date, slot.start_time)
-            
-            booked_count = Appointment.query.filter_by(
-                procedure_id=proc_id,
-                start_date_time=start_dt
+
+            booked_count = Appointment.query.filter(
+                Appointment.procedure_id == proc_id,
+                Appointment.start_date_time == start_dt,
+                Appointment.status != "cancelled"
             ).count()
 
             results.append({

@@ -30,6 +30,9 @@ export const Calendar = () => {
     const [calendarAlert, setCalendarAlert] = useState({ show: false, msg: "", type: "" });
     const [pendingDeleteSlotId, setPendingDeleteSlotId] = useState(null);
 
+    const [cancellingAppo, setCancellingAppo] = useState(null);
+    const [cancelReason, setCancelReason] = useState("");
+
     const loadData = async () => {
         const token = localStorage.getItem("token");
         const month = viewDate.getMonth() + 1;
@@ -80,7 +83,7 @@ export const Calendar = () => {
         });
     }, [blockedSlots, selectedDayNumber]);
 
-    const updateAppointmentStatus = async (appoId, newStatus) => {
+    const updateAppointmentStatus = async (appoId, newStatus, reason = null) => {
         const token = localStorage.getItem("token");
         try {
             const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appoId}`, {
@@ -89,12 +92,17 @@ export const Calendar = () => {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({
+                    status: newStatus,
+                    cancellation_reason: reason
+                })
             });
 
             if (resp.ok) {
                 await loadData();
                 setShowDayModal(false);
+                setCancellingAppo(null);
+                setCancelReason("");
                 setCalendarAlert({ show: true, msg: `Turno ${newStatus === 'cancelled' ? 'cancelado' : 'confirmado'} con éxito.`, type: "success" });
             }
         } catch (err) {
@@ -396,7 +404,14 @@ export const Calendar = () => {
                                                         <button className="btn btn-success btn-sm rounded-3" onClick={() => updateAppointmentStatus(appo.id, 'confirmed')}>Confirmar</button>
                                                     )}
                                                     {appo.status !== 'cancelled' && (
-                                                        <button className="btn btn-outline-danger btn-sm rounded-3" onClick={() => updateAppointmentStatus(appo.id, 'cancelled')}>Cancelar</button>
+                                                        <button
+                                                            className="btn btn-outline-danger btn-sm rounded-3"
+                                                            onClick={() => {
+                                                                setCancellingAppo(appo);
+                                                                setCancelReason("");
+                                                            }}>
+                                                            Cancelar
+                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
@@ -454,7 +469,57 @@ export const Calendar = () => {
                     </div>
                 </div>
             )}
-
+            {cancellingAppo && (
+                <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content border-0 rounded-4 shadow">
+                            <div className="modal-header border-0">
+                                <h5 className="modal-title fw-bold text-danger">
+                                    <i className="bi bi-x-circle me-2"></i>Cancelar Turno
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setCancellingAppo(null)}>
+                                </button>
+                            </div>
+                            <div className="modal-body px-4">
+                                <p className="mb-1">
+                                    ¿Confirmas la cancelación del turno de <strong>{cancellingAppo.patient_name}</strong>?
+                                </p>
+                                <p className="text-muted extra-small mb-3">
+                                    <i className="bi bi-clock me-1"></i>
+                                    {new Date(cancellingAppo.start_date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — {cancellingAppo.procedure_name}
+                                </p>
+                                <div className="mb-2">
+                                    <label className="form-label fw-semibold">
+                                        Motivo de cancelación <span className="text-muted fw-normal">(opcional)</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Ej: Solicitud del paciente, reprogramación..."
+                                        value={cancelReason}
+                                        onChange={e => setCancelReason(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-footer border-0">
+                                <button
+                                    className="btn btn-light fw-bold"
+                                    onClick={() => setCancellingAppo(null)}>
+                                    No, volver
+                                </button>
+                                <button
+                                    className="btn btn-danger fw-bold px-4"
+                                    onClick={() => updateAppointmentStatus(cancellingAppo.id, 'cancelled', cancelReason || null)}>
+                                    Sí, cancelar turno
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {calendarAlert.show && (
                 <div className="position-fixed bottom-0 start-50 translate-middle-x mb-4" style={{ zIndex: 1060, minWidth: "350px" }}>

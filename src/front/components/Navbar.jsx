@@ -1,4 +1,3 @@
-import React from "react";
 import { useLocation } from "react-router-dom";
 import "../styles/navbar.css";
 import { useNavigate } from "react-router-dom";

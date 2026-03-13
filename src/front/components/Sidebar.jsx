@@ -1,4 +1,3 @@
-import React from "react";
 import { NavLink } from "react-router-dom";
 import { useState, useRef, useEffect, useContext } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
@@ -91,8 +90,8 @@ export const Sidebar = () => {
         <>
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <div className="logo-icon">DS</div>
-                    <span className="logo-text">DocSpot AI</span>
+                    <div className="logo-icon">PM</div>
+                    <span className="logo-text">ProceMed</span>
                 </div>
                 <nav className="sidebar-nav">
                     <NavLink to="/" className="sidebar-nav-item">

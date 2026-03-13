@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import useMedicalData from "../hooks/useMedicalData";
 
 const NewAppointment = () => {
     const { specialties, procedures, loadingMedicalData } = useMedicalData();
     const { store } = useGlobalReducer();
+    const [searchParams] = useSearchParams();
+    const dateFormUrl = searchParams.get("date");
 
     const initialFormState = {
-        date: "",
+        date: dateFormUrl || "",
         start_date_time: "",
         end_date_time: "",
         dni: "",

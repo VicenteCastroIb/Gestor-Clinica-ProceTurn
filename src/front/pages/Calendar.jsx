@@ -1,4 +1,5 @@
 import { useEffect, useContext, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import ConfirmModal from "../components/ConfirmModal";
 import useMedicalData from "../hooks/useMedicalData";
@@ -6,6 +7,7 @@ import "../styles/calendar.css";
 
 export const Calendar = () => {
     const { store, dispatch } = useContext(StoreContext);
+    const navigate = useNavigate();
     const [viewDate, setViewDate] = useState(new Date());
 
     const { procedures } = useMedicalData();
@@ -334,7 +336,12 @@ export const Calendar = () => {
                                 <button
                                     type="button"
                                     className="btn btn-dark mx-5"
-                                    onClick={() => console.log("Abrir formulario de cita")}
+                                    onClick={() => {
+                                        const monthStr = String(viewDate.getMonth() + 1).padStart(2, '0');
+                                        const dayStr = String(selectedDayNumber).padStart(2, '0');
+                                        const dateString = `${currentYear}-${monthStr}-${dayStr}`;
+                                        navigate(`/new-appointment?date=${dateString}`);
+                                    }}
                                 >
                                     + Nuevo turno
                                 </button>

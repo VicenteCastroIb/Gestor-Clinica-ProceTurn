@@ -1,13 +1,14 @@
 import { useEffect, useContext, useState, useMemo } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import ConfirmModal from "../components/ConfirmModal";
+import useMedicalData from "../hooks/useMedicalData";
 import "../styles/calendar.css";
 
 export const Calendar = () => {
     const { store, dispatch } = useContext(StoreContext);
     const [viewDate, setViewDate] = useState(new Date());
 
-    const [procedures, setProcedures] = useState([]);
+    const { procedures } = useMedicalData();
     const [selectedProcedure, setSelectedProcedure] = useState("");
 
     const [showDayModal, setShowDayModal] = useState(false);
@@ -169,7 +170,7 @@ export const Calendar = () => {
         const monthShort = currentMonthName.substring(0, 3);
 
         for (let day = 1; day <= daysInMonth; day++) {
-            const allDayAppos = store.appointments?.filter(a => new Date(a.start_date_time).getDate() === day) || [];
+            const allDayAppos = filteredAppos.filter(a => new Date(a.start_date_time).getDate() === day);
             const activeAppos = allDayAppos.filter(a => a.status !== "cancelled");
 
             const isBlocked = blockedSlots.some(slot => {
@@ -242,14 +243,17 @@ export const Calendar = () => {
                                 </button>
                             )}
                         </div>
-                        <div className="col text-end">
+                        <div className="col text-end d-flex align-items-center justify-content-end gap-2">
                             {selectedProcedure ? (
-                                <span className="badge bg-primary rounded-pill px-3 py-2">
-                                    Filtrando por: {procedures.find(p => p.id == selectedProcedure)?.name}
-                                </span>
+                                <>
+                                    <i className="bi bi-funnel-fill text-primary"></i>
+                                    <span className="badge bg-primary rounded-pill px-3 py-2">
+                                        Filtrando: {procedures.find(p => p.id == selectedProcedure)?.name}
+                                    </span>
+                                </>
                             ) : (
-                                <span className="badge bg-light text-dark border rounded-pill px-3 py-2 me-2">
-                                    Vista General
+                                <span className="badge bg-light text-dark border rounded-pill px-3 py-2">
+                                    <i className="bi bi-funnel me-1"></i>Sin filtros activos
                                 </span>
                             )}
                         </div>

@@ -25,7 +25,7 @@ export const Navbar = () => {
 							<i className="bi bi-bell fs-5 text-secondary"></i>
 							<span className="notification-dot"></span>
 						</div>
-						<button className="btn btn-dark rounded-3 px-4 fw-bold btn-new-appo">
+						<button className="btn btn-dark rounded-3 px-4 fw-bold btn-new-appo" onClick={() => navigate("/new-appointment")}>
 							<i className="bi"></i>
 							+ Nuevo Turno
 						</button>

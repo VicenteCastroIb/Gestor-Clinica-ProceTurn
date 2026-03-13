@@ -250,7 +250,12 @@ def update_user(user_id):
 
 
 @api.route('/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
 def delete_user(user_id):
+    current_user = get_jwt_identity()
+    admin = db.session.get(User, current_user)
+    if not admin or admin.role != "admin":
+        return jsonify({"msg": "Unauthorized"}), 403
 
     user = db.session.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
 
@@ -406,7 +411,7 @@ def create_appointment():
             user_id=body['user_id'],
             specialty_id=body['specialty_id'],
             procedure_id=body['procedure_id'],
-            notes=body['notes'], 
+            notes=body.get['notes', None], 
             status="scheduled",
             confirmed=False
         )

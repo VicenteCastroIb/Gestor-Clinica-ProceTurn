@@ -9,7 +9,11 @@ def reset_and_seed():
     with app.app_context():
         print("🧹 Limpiando tablas y reiniciando IDs...")
         try:
-            db.session.execute(text("TRUNCATE TABLE procedure_availabilities, patients, procedures, specialties, preparations RESTART IDENTITY CASCADE;"))
+            db.session.execute(text("DELETE FROM procedure_availabilities;"))
+            db.session.execute(text("DELETE FROM patients;"))
+            db.session.execute(text("DELETE FROM procedures;"))
+            db.session.execute(text("DELETE FROM specialties;"))
+            db.session.execute(text("DELETE FROM preparations;"))
             db.session.commit()
 
             # --- 1. PREPARACIONES (20) ---

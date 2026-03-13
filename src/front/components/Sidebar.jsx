@@ -90,8 +90,10 @@ export const Sidebar = () => {
         <>
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <div className="logo-icon">PM</div>
-                    <span className="logo-text">ProceMed</span>
+                    <div className="logo-icon">
+                        <i className="bi bi-calendar-check" style={{ fontSize: "0.9rem" }}></i>
+                    </div>
+                    <span className="logo-text">ProceTurn</span>
                 </div>
                 <nav className="sidebar-nav">
                     <NavLink to="/" className="sidebar-nav-item">

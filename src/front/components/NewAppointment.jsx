@@ -1,5 +1,4 @@
-import { useState } from "react";
-import "../styles/signup.css";
+import { useState, useEffect } from "react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import useMedicalData from "../hooks/useMedicalData";
 
@@ -8,6 +7,7 @@ const NewAppointment = () => {
     const { store } = useGlobalReducer();
 
     const initialFormState = {
+        date: "",
         start_date_time: "",
         end_date_time: "",
         dni: "",
@@ -18,18 +18,54 @@ const NewAppointment = () => {
     };
 
     const [formData, setFormData] = useState(initialFormState);
+    const [capacity, setCapacity] = useState(0);
     const [loading, setLoading] = useState(false);
     const [alert, setAlert] = useState({ show: false, msg: "", type: "" });
 
+    useEffect(() => {
+        if (formData.procedure_id || formData.date) fetchCapacityProcedures(formData.procedure_id, formData.date);
+    }, [formData.date, formData.procedure_id]);
+
+    const fetchCapacityProcedures = async (procId, date) => {
+        if (!procId || !date) return;
+        try {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/procedure-capacity`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${store.token}`
+                },
+                body: JSON.stringify({ procId: procId, date: date })
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                setCapacity(data);
+            }
+        } catch (error) { console.error("Error fetching capacity", error); }
+    };
+
     const handleChange = (e) => {
+        const { name, value } = e.target;
         if (alert.show) setAlert({ show: false, msg: "", type: "" });
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        setFormData({ ...formData, [name]: value });
+        if (name === "date") setFormData(prev => ({ ...prev, start_date_time: "", end_date_time: "" }));
+    };
+
+    const getAvailableSlotsForDate = () => {
+        if (!formData.date || !capacity || capacity.length === 0) return [];
+        return capacity;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setAlert({ show: false, msg: "", type: "" });
+
+        const payload = {
+            ...formData,
+            start_date_time: `${formData.date} ${formData.start_date_time}`,
+            end_date_time: `${formData.date} ${formData.end_date_time}`
+        };
 
         try {
             const response = await fetch(import.meta.env.VITE_BACKEND_URL + "/api/create-appointments", {
@@ -38,7 +74,7 @@ const NewAppointment = () => {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${store.token}`,
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();
@@ -56,88 +92,80 @@ const NewAppointment = () => {
         }
     };
 
+    const slotsToShow = getAvailableSlotsForDate();
+
     return (
         <div className="container py-5">
-            <div className="row justify-content-center">
-                <div className="col-md-8 col-lg-6">
-                    <div className="signup-card shadow-sm p-4 bg-white rounded">
-                        <h2 className="text-center mb-4 fw-bold">Crear Turno</h2>
-                        <form onSubmit={handleSubmit}>
-                            {alert.show && (
-                                <div className={`alert alert-${alert.type} alert-dismissible fade show`} role="alert">
-                                    {alert.msg}
-                                    <button type="button" className="btn-close" onClick={() => setAlert({ ...alert, show: false })}></button>
-                                </div>
-                            )}
+            <div className="signup-card shadow-sm p-4 bg-white rounded mx-auto" style={{ maxWidth: "600px" }}>
+                <h2 className="text-center mb-4 fw-bold">Agendar Turno</h2>
 
-                            <div className="row">
-                                <div className="col-md-6 mb-3">
-                                    <label className="form-label">Inicio</label>
-                                    <input type="datetime-local" className="form-control" name="start_date_time"
-                                        value={formData.start_date_time} onChange={handleChange} required />
-                                </div>
-                                <div className="col-md-6 mb-3">
-                                    <label className="form-label">Fin</label>
-                                    <input type="datetime-local" className="form-control" name="end_date_time"
-                                        value={formData.end_date_time} onChange={handleChange} required />
-                                </div>
-                            </div>
-
-                            <div className="mb-3">
-                                <label className="form-label">DNI del Paciente</label>
-                                <input type="text" className="form-control" name="dni"
-                                    value={formData.dni} onChange={handleChange} placeholder="Ej: 12345678X" required />
-                            </div>
-
-                            <div className="row">
-                                <div className="mb-3">
-                                    <label className="form-label">Especialidad</label>
-                                    <select
-                                        className="form-select"
-                                        name="specialty_id"
-                                        value={formData.specialty_id}
-                                        onChange={handleChange}
-                                        required
-                                    >
-                                        <option value="">{loadingMedicalData ? "Cargando..." : "Seleccione especialidad"}</option>
-                                        {specialties.map(spec => (
-                                            <option key={spec.id} value={spec.id}>{spec.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="mb-3">
-                                    <label className="form-label">Procedimiento</label>
-                                    <select
-                                        className="form-select"
-                                        name="procedure_id"
-                                        value={formData.procedure_id}
-                                        onChange={handleChange}
-                                        required
-                                    >
-                                        <option value="">{loadingMedicalData ? "Cargando..." : "Seleccione procedimiento"}</option>
-                                        {procedures
-                                            .filter(proc => !formData.specialty_id || proc.specialty_id == formData.specialty_id)
-                                            .map(proc => (
-                                                <option key={proc.id} value={proc.id}>{proc.name}</option>
-                                            ))
-                                        }
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="mb-3">
-                                <label className="form-label">Notas / Observaciones</label>
-                                <textarea className="form-control" name="notes" rows="3"
-                                    value={formData.notes} onChange={handleChange}></textarea>
-                            </div>
-
-                            <button type="submit" className="btn btn-primary w-100 py-2 fw-bold" disabled={loading}
-                                style={{ backgroundColor: "#2ECC71", border: "none" }}>
-                                {loading ? "Procesando..." : "Agendar Cita"}
-                            </button>
-                        </form>
+                {alert.show && (
+                    <div className={`alert alert-${alert.type} alert-dismissible fade show`} role="alert">
+                        {alert.msg}
+                        <button type="button" className="btn-close" onClick={() => setAlert({ ...alert, show: false })}></button>
                     </div>
-                </div>
+                )}
+
+                <form onSubmit={handleSubmit}>
+                    <div className="row mb-3">
+                        <div className="col-md-6">
+                            <label className="form-label fw-bold">Especialidad</label>
+                            <select className="form-select" name="specialty_id" onChange={handleChange} value={formData.specialty_id} required>
+                                <option value="">Seleccione...</option>
+                                {specialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="col-md-6">
+                            <label className="form-label fw-bold">Procedimiento</label>
+                            <select className="form-select" name="procedure_id" onChange={handleChange} disabled={!formData.specialty_id} value={formData.procedure_id} required>
+                                <option value="">Seleccione...</option>
+                                {procedures.filter(p => p.specialty_id == formData.specialty_id).map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="mb-3">
+                        <label className="form-label fw-bold">Seleccione Fecha</label>
+                        <input type="date" className="form-control" name="date" value={formData.date} onChange={handleChange}
+                            disabled={!formData.procedure_id} min={new Date().toISOString().split("T")[0]} required />
+                    </div>
+
+                    {formData.date && (
+                        <div className="mb-4">
+                            <label className="form-label fw-bold">Horarios Disponibles:</label>
+                            <div className="d-flex flex-wrap gap-2">
+                                {slotsToShow.length > 0 ? slotsToShow.map(slot => (
+                                    <button key={slot.slot_id} type="button"
+                                        disabled={slot.is_full}
+                                        style={slot.is_full ? { backgroundColor: '#ca4949', borderColor: '#E57373', color: 'white' } : {}}
+                                        className={`btn ${!slot.is_full && formData.start_date_time === slot.start_time
+                                            ? 'btn-primary'
+                                            : 'btn-outline-primary'
+                                            } ${slot.is_full ? 'opacity-75' : ''}`}
+                                        onClick={() => setFormData({ ...formData, start_date_time: slot.start_time, end_date_time: slot.end_time })}>
+                                        {slot.start_time.slice(0, 5)}
+                                        <small className="ms-1" style={{ fontSize: "0.6rem" }}>
+                                            ({slot.is_full ? "0" : `${slot.available_slots}`})
+                                        </small>
+                                    </button>
+                                )) : <div className="alert alert-light border w-100 p-2 small text-muted">No hay atención este día.</div>}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="mb-3">
+                        <label className="form-label fw-bold">DNI del Paciente</label>
+                        <input type="text" className="form-control" name="dni" value={formData.dni} onChange={handleChange} required />
+                    </div>
+
+                    <button type="submit" className="btn btn-success w-100 py-2 fw-bold"
+                        disabled={loading || !formData.start_date_time}
+                        style={{ backgroundColor: "#2ECC71", border: "none" }}>
+                        {loading ? "Procesando..." : "Confirmar Cita"}
+                    </button>
+                </form>
             </div>
         </div>
     );

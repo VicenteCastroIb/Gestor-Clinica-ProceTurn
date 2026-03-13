@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify, url_for, Blueprint, current_app
-from api.models import db, User, Appointment, BlockedSlot, Patient, Specialty, Procedure
+from api.models import db, User, Appointment, BlockedSlot, Patient, Specialty, Procedure, ProcedureAvailability
 from api.utils import generate_sitemap, APIException, generate_reset_token, verify_reset_token, get_month_date_range
 from flask_mail import Message
 from flask_cors import CORS
@@ -366,9 +366,38 @@ def create_appointment():
         if field not in body or not body[field]:
             return jsonify({"msg": f"The field '{field}' is required"}), 400
 
+    already_booked = Appointment.query.filter_by(
+        patient_id=patient.id,
+        procedure_id=body['procedure_id'],
+        start_date_time=body['start_date_time'],
+    ).first()
+
+    if already_booked:
+        return jsonify({
+            "msg": "Este paciente ya tiene una cita agendada para este procedimiento en este horario."
+        }), 400
+
+
     try:
-        start_dt = datetime.fromisoformat(body['start_date_time'])
-        end_dt = datetime.fromisoformat(body['end_date_time'])
+        start_dt = datetime.strptime(body['start_date_time'], "%Y-%m-%d %H:%M:%S")
+        end_dt = datetime.strptime(body['end_date_time'], "%Y-%m-%d %H:%M:%S")
+
+        availability = ProcedureAvailability.query.filter_by(
+            procedure_id=body['procedure_id'],
+            day_of_week=start_dt.weekday(),
+            start_time=start_dt.time()
+        ).first()
+
+        if not availability:
+            return jsonify({"msg": "This time slot is not available for this procedure"}), 400
+        
+        current_appointments = Appointment.query.filter_by(
+            start_date_time=start_dt,
+            procedure_id=body['procedure_id']
+        ).count()
+
+        if current_appointments >= availability.capacity:
+            return jsonify({"msg": f"Fully booked. All {availability.capacity} machines are busy at this time."}), 400
 
         new_appointment = Appointment(
             start_date_time=start_dt,
@@ -531,3 +560,45 @@ def delete_blocked_slot(slot_id):
     db.session.delete(slot)
     db.session.commit()
     return jsonify({"msg": "Slot eliminado exitosamente"}), 200
+
+
+@api.route('/procedure-capacity', methods=['POST'])
+@jwt_required()
+def get_procedure_capacity():
+    body = request.get_json()
+    proc_id = body.get("procId")
+    selected_date_str = body.get("date") 
+
+    if not proc_id or not selected_date_str:
+        return jsonify({"msg": "Missing procId or date"}), 400
+
+    try:
+        selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+        day_of_week = selected_date.weekday() 
+
+        slots = ProcedureAvailability.query.filter_by(
+            procedure_id=proc_id, 
+            day_of_week=day_of_week
+        ).all()
+
+        results = []
+        for slot in slots:
+            start_dt = datetime.combine(selected_date, slot.start_time)
+            
+            booked_count = Appointment.query.filter_by(
+                procedure_id=proc_id,
+                start_date_time=start_dt
+            ).count()
+
+            results.append({
+                "slot_id": slot.id,
+                "start_time": slot.start_time.strftime("%H:%M:%S"),
+                "end_time": slot.end_time.strftime("%H:%M:%S"),
+                "available_slots": slot.capacity - booked_count,
+                "is_full": booked_count >= slot.capacity
+            })
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        return jsonify({"msg": "Error consultando capacidad", "error": str(e)}), 500

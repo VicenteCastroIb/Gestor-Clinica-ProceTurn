@@ -132,7 +132,7 @@ const NewAppointment = () => {
                     <div className="mb-3">
                         <label className="form-label fw-bold">Seleccione Fecha</label>
                         <input type="date" className="form-control" name="date" value={formData.date} onChange={handleChange}
-                            disabled={!formData.procedure_id} min={new Date().toISOString().split("T")[0]} required />
+                            min={new Date().toISOString().split("T")[0]} required />
                     </div>
 
                     {formData.date && (

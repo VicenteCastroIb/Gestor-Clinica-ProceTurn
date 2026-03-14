@@ -612,3 +612,15 @@ def get_procedure_capacity():
 
     except Exception as e:
         return jsonify({"msg": "Error consultando capacidad", "error": str(e)}), 500
+
+@api.route('/patients', methods=['GET'])
+@jwt_required() 
+def get_all_patients():
+    patients = Patient.query.all()
+    
+    if not patients:
+        return jsonify([]), 200
+
+    serialized_patients = [patient.serialize() for patient in patients]
+
+    return jsonify(serialized_patients), 200

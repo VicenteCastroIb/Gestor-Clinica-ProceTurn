@@ -1,9 +1,11 @@
 import { useContext, useEffect, useState } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
+import { useNavigate } from "react-router-dom";
 
 export const Patients = () => {
     const { store, dispatch } = useContext(StoreContext);
     const [searchTerm, setSearchTerm] = useState("");
+    const navigate = useNavigate();
 
     const getPatients = async () => {
         const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -65,7 +67,7 @@ export const Patients = () => {
                     { label: "Total Pacientes", value: store.patientsList?.length || 0, color: "text-dark" },
                     { label: "Pacientes Activos", value: store.patientsList?.filter(p => p.is_active).length || 0, color: "text-success" },
                     { label: "Pacientes Inactivos", value: store.patientsList?.filter(p => !p.is_active).length || 0, color: "text-danger" },
-                    { label: "Turnos Pendientes", value: "24", color: "text-warning" } //Esto lo tengo pendiente de calcular, por ahora es un placeholder
+                    { label: "Turnos Programados", value: store.patientsList?.reduce((acc, patient) => acc + patient.appointment_count, 0) || 0, color: "text-warning" }
                 ].map((stat, idx) => (
                     <div className="col-12 col-md-3" key={idx}>
                         <div className="card border-0 shadow-sm p-3 rounded-4">
@@ -111,11 +113,11 @@ export const Patients = () => {
 
                                 <div className="pt-3 border-top d-flex justify-content-between align-items-center">
                                     <div className="text-muted small">
-                                        <i className="fa-solid fa-notes-medical me-1"></i> 3 Turnos Activos
+                                        <i className="fa-solid fa-notes-medical me-1"></i> {patient.appointment_count} Turnos Programados
                                     </div>
                                     <div className="d-flex gap-2">
-                                        <button className="btn btn-outline-dark btn-sm rounded-3 px-3" onClick={() => console.log("crear turno")
-                                        }>
+                                        <button className="btn btn-outline-dark btn-sm rounded-3 px-3" onClick={() => navigate(`/new-appointment?dni=${patient.dni}`)}
+                                        >
                                             <i className="fa-regular fa-pen-to-square me-1"></i> Asignar Turno
                                         </button>
                                     </div>

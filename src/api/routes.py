@@ -373,13 +373,12 @@ def create_appointment():
 
     already_booked = Appointment.query.filter_by(
         patient_id=patient.id,
-        procedure_id=body['procedure_id'],
         start_date_time=body['start_date_time'],
     ).first()
 
     if already_booked:
         return jsonify({
-            "msg": "Este paciente ya tiene una cita agendada para este procedimiento en este horario."
+            "msg": "Este paciente ya tiene un turno agendado en este horario."
         }), 400
 
 
@@ -429,27 +428,18 @@ def create_appointment():
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Internal server error", "error": str(e)}), 500
-    
-@api.route('/appointments/<int:appo_id>', methods=['PUT']) 
+
+
+@api.route('/appointments/patient/<int:patient_id>', methods=['GET']) 
 @jwt_required()
-def update_appointment_status(appo_id):
-    body = request.get_json()
-    new_status = body.get("status") 
+def update_appointment_status(patient_id):
+    appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(Appointment.start_date_time.desc())
+    if not appointments:
+        return jsonify([]), 200
+    
+    return jsonify([app.serialize() for app in appointments]), 200
 
-    appointment = db.session.get(Appointment, appo_id)
-    if not appointment:
-        return jsonify({"msg": "Turno no encontrado"}), 404
-
-    appointment.status = new_status
-    if new_status == "confirmed":
-        appointment.confirmed = True
-
-    if new_status == "cancelled":
-        appointment.cancellation_date = datetime.now(timezone.utc)
-        appointment.cancellation_reason = body.get("cancellation_reason", None)
-
-    db.session.commit()
-    return jsonify({"msg": f"Turno actualizado a {new_status}"}), 200
+    
 
 @api.route('/appointments', methods=['GET'])
 @jwt_required()
@@ -614,13 +604,20 @@ def get_procedure_capacity():
         return jsonify({"msg": "Error consultando capacidad", "error": str(e)}), 500
 
 @api.route('/patients', methods=['GET'])
-@jwt_required() 
+@jwt_required()
 def get_all_patients():
     patients = Patient.query.all()
     
-    if not patients:
-        return jsonify([]), 200
+    results = []
+    for patient in patients:
+        patient_data = patient.serialize()
+        count = Appointment.query.filter_by(
+            patient_id=patient.id, 
+            status="scheduled"
+        ).count()
+        
+        patient_data["appointment_count"] = count
+        
+        results.append(patient_data)
 
-    serialized_patients = [patient.serialize() for patient in patients]
-
-    return jsonify(serialized_patients), 200
+    return jsonify(results), 200

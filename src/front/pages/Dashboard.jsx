@@ -119,6 +119,7 @@ export const Dashboard = () => {
                                     <th className="fw-semibold small">Procedimiento</th>
                                     <th className="fw-semibold small">Especialidad</th>
                                     <th className="fw-semibold small">Estado</th>
+                                    <th className="fw-semibold small text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -142,6 +143,16 @@ export const Dashboard = () => {
                                             <span className={`badge bg-${statusColor(appo.status)} rounded-pill px-3`}>
                                                 {statusLabel(appo.status)}
                                             </span>
+                                        </td>
+                                        <td className="text-center">
+                                            <button
+                                                className="btn btn-outline-dark btn-sm rounded-3 px-3"
+                                                onClick={() => navigate(`/edit-appointment/${appo.id}`)}
+                                                disabled={appo.status !== "scheduled"}
+                                            >
+                                                <i className="fa-regular fa-pen-to-square me-1"></i>
+                                                Editar
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}

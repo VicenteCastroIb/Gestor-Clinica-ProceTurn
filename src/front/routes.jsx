@@ -4,7 +4,7 @@ import {
   Route,
 } from "react-router-dom";
 import { Layout } from "./pages/Layout";
-import { Home } from "./pages/Home";
+import { Tablero } from "./pages/Tablero";
 import { Single } from "./pages/Single";
 import { Demo } from "./pages/Demo";
 import Signup from "./pages/Signup";
@@ -25,7 +25,7 @@ export const router = createBrowserRouter(
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><Tablero /></ProtectedRoute>} />
         <Route path="/single/:theId" element={<ProtectedRoute><Single /></ProtectedRoute>} />
         <Route path="/demo" element={<ProtectedRoute><Demo /></ProtectedRoute>} />
         <Route path="/calendar" element={<ProtectedRoute adminOnly><Calendar /></ProtectedRoute>} />

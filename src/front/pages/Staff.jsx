@@ -12,7 +12,6 @@ export const Staff = () => {
         const url = `${backendURL}/api/users`;
 
         try {
-            console.log("Intentando fetch a:", url);
             const response = await fetch(url, {
                 method: "GET",
                 headers: {

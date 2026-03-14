@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import useMedicalData from "../hooks/useMedicalData";
+import ConfirmModal from "./ConfirmModal";
 
 const NewAppointment = () => {
     const { id } = useParams();
@@ -72,6 +73,8 @@ const NewAppointment = () => {
                 setFormData({
                     ...data,
                     date: dateOnly,
+                    start_date_time: "",
+                    end_date_time: "",
                     dni: data.patient_dni
                 });
             }
@@ -162,11 +165,33 @@ const NewAppointment = () => {
             setLoading(false);
         }
     };
-
+    const handleProcess = (e) => {
+        e.preventDefault();
+        if (!isEditMode) handleSubmit(e);
+    }
     const slotsToShow = getAvailableSlotsForDate();
 
     return (
         <div className="container py-5">
+            <ConfirmModal
+                id="confirmEditModal"
+                title="Confirmar Reprogramación"
+                message={
+                    <>¿Confirmas el cambio de horario para el paciente con DNI <strong>{formData.dni}</strong>?</>
+                }
+                warning={
+                    <>
+                        Nuevo horario: <strong>{formData.date}</strong> a las
+                        <strong> {formData.start_date_time?.substring(0, 5)} hs</strong>
+                    </>
+                }
+                onConfirm={(e) => {
+                    handleSubmit(e);
+                }}
+            />
+
+
+
             <div className="signup-card shadow-sm p-4 bg-white rounded mx-auto" style={{ maxWidth: "600px" }}>
                 <h2 className="text-center mb-4 fw-bold">{isEditMode ? "Reprogramar Turno" : "Agendar Turno"}</h2>
                 {isEditMode && originalAppointment && (
@@ -184,7 +209,7 @@ const NewAppointment = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleProcess}>
                     <div className="row mb-3">
                         <div className="col-md-6">
                             <label className="form-label fw-bold">Especialidad</label>
@@ -238,10 +263,15 @@ const NewAppointment = () => {
                         <input type="text" className="form-control" name="dni" value={formData.dni} onChange={handleChange} readOnly={isEditMode || dniFormUrl} required />
                     </div>
 
-                    <button type="submit" className="btn btn-success w-100 py-2 fw-bold"
+                    <button
+                        type="submit"
+                        className="btn btn-success w-100 py-2 fw-bold"
                         disabled={loading || !formData.start_date_time}
-                        style={{ backgroundColor: "#2ECC71", border: "none" }}>
-                        {loading ? "Procesando..." : "Confirmar Turno"}
+                        data-bs-toggle={isEditMode ? "modal" : ""}
+                        data-bs-target={isEditMode ? "#confirmEditModal" : ""}
+                        style={{ backgroundColor: "#2ECC71", border: "none" }}
+                    >
+                        {loading ? "Procesando..." : isEditMode ? "Confirmar Cambios" : "Confirmar Cita"}
                     </button>
                 </form>
             </div>

@@ -11,6 +11,12 @@ export const PatientProfile = () => {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState({ start: "", end: "" });
+    const statusTranslations = {
+        scheduled: "Programado",
+        confirmed: "Confirmado",
+        cancelled: "Cancelado",
+        postponed: "Pospuesto"
+    };
 
 
     useEffect(() => {
@@ -55,7 +61,7 @@ export const PatientProfile = () => {
 
     const stats = useMemo(() => {
         return {
-            total: filteredAppointments.filter(a => a.status === "scheduled").length,
+            total: filteredAppointments.filter(a => a.status === "scheduled" || a.status === "postponed").length,
             completed: filteredAppointments.filter(a => a.status === "confirmed").length,
             cancelled: filteredAppointments.filter(a => a.status === "cancelled").length,
             postponed: filteredAppointments.filter(a => a.status === "postponed").length
@@ -111,8 +117,8 @@ export const PatientProfile = () => {
                 <div className="col-md-8">
                     <div className="row g-3 mb-4">
                         {[
-                            { label: "Turnos", value: stats.total, color: "primary", bg: "#eef2ff" },
-                            { label: "Asistidos", value: stats.completed, color: "success", bg: "#f0fdf4" },
+                            { label: "Programados + Pospuestos ", value: stats.total, color: "primary", bg: "#eef2ff" },
+                            { label: "Confirmados", value: stats.completed, color: "success", bg: "#f0fdf4" },
                             { label: "Cancelados", value: stats.cancelled, color: "danger", bg: "#fef2f2" },
                             { label: "Pospuestos", value: stats.postponed, color: "info", bg: "#f0f9ff" }
                         ].map((s, idx) => (
@@ -197,7 +203,7 @@ export const PatientProfile = () => {
                                                 <td className="small">{appo.procedure_name}</td>
                                                 <td>
                                                     <span className={`badge bg-${statusColor(appo.status)} rounded-pill px-3`} style={{ fontSize: "0.7rem" }}>
-                                                        {appo.status.toUpperCase()}
+                                                        {statusTranslations[appo.status] || appo.status}
                                                     </span>
                                                 </td>
                                                 <td className="text-center">

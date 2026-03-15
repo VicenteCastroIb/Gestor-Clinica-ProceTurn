@@ -22,6 +22,27 @@ export const Dashboard = () => {
         } catch (err) { console.error("Error cargando turnos:", err); }
     };
 
+    const updateStatus = async (appoId, newStatus) => {
+    try {
+        const resp = await fetch(
+            `${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appoId}`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status: newStatus }),
+            }
+        );
+        if (resp.ok) {
+            await loadTodayAppointments();
+        }
+    } catch (err) {
+        console.error("Error actualizando turno:", err);
+    }
+};
+
     useEffect(() => {
         loadTodayAppointments();
     }, []);
@@ -55,12 +76,16 @@ export const Dashboard = () => {
     const statusColor = (status) => {
         if (status === "confirmed") return "success";
         if (status === "cancelled") return "danger";
+        if (status === "arrived") return "primary";
+        if (status === "delayed") return "secondary";
         return "warning";
     };
 
     const statusLabel = (status) => {
         if (status === "confirmed") return "Confirmado";
         if (status === "cancelled") return "Cancelado";
+        if (status === "arrived") return "Llegó";
+        if (status === "delayed") return "Demorado";
         return "Programado";
     };
 
@@ -145,14 +170,48 @@ export const Dashboard = () => {
                                             </span>
                                         </td>
                                         <td className="text-center">
-                                            <button
-                                                className="btn btn-outline-dark btn-sm rounded-3 px-3"
-                                                onClick={() => navigate(`/edit-appointment/${appo.id}`)}
-                                                disabled={appo.status !== "scheduled" && appo.status !== "postponed"}
-                                            >
-                                                <i className="fa-regular fa-pen-to-square me-1"></i>
-                                                Editar
-                                            </button>
+                                            <div className="dropdown">
+                                                <button
+                                                    className="btn btn-outline-dark btn-sm rounded-3 px-3 dropdown-toggle"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false"
+                                                >
+                                                    Acciones
+                                                </button>
+                                                <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+                                                    <li>
+                                                        <button
+                                                            className="dropdown-item small"
+                                                            disabled={appo.status !== "scheduled"}
+                                                            onClick={() => updateStatus(appo.id, "arrived")}
+                                                        >
+                                                            <i className="bi bi-person-check me-2 text-primary"></i>
+                                                            Confirmar llegada
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button
+                                                            className="dropdown-item small"
+                                                            disabled={appo.status !== "scheduled"}
+                                                            onClick={() => updateStatus(appo.id, "delayed")}
+                                                        >
+                                                            <i className="bi bi-clock-history me-2 text-warning"></i>
+                                                            Marcar demora
+                                                        </button>
+                                                    </li>
+                                                    <li><hr className="dropdown-divider" /></li>
+                                                    <li>
+                                                        <button
+                                                            className="dropdown-item small"
+                                                            disabled={appo.status !== "scheduled" && appo.status !== "postponed"}
+                                                            onClick={() => navigate(`/edit-appointment/${appo.id}`)}
+                                                        >
+                                                            <i className="fa-regular fa-pen-to-square me-2"></i>
+                                                            Editar
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

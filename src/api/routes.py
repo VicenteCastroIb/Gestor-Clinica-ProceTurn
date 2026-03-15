@@ -432,7 +432,7 @@ def create_appointment():
 
 @api.route('/appointments/patient/<int:patient_id>', methods=['GET']) 
 @jwt_required()
-def update_appointment_status(patient_id):
+def get_appointments_by_patient(patient_id):
     appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(Appointment.start_date_time.desc())
     if not appointments:
         return jsonify([]), 200
@@ -679,3 +679,13 @@ def get_all_patients():
         results.append(patient_data)
 
     return jsonify(results), 200
+
+@api.route('/patients/<int:patient_id>', methods=['GET'])
+@jwt_required()
+def get_single_patient(patient_id):
+    patient = db.session.get(Patient, patient_id)
+    
+    if not patient:
+        return jsonify({"msg": "Paciente no encontrado"}), 404
+
+    return jsonify(patient.serialize()), 200

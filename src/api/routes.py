@@ -388,13 +388,12 @@ def create_appointment():
 
     already_booked = Appointment.query.filter_by(
         patient_id=patient.id,
-        procedure_id=body['procedure_id'],
         start_date_time=body['start_date_time'],
     ).first()
 
     if already_booked:
         return jsonify({
-            "msg": "Este paciente ya tiene una cita agendada para este procedimiento en este horario."
+            "msg": "Este paciente ya tiene un turno agendado en este horario."
         }), 400
 
 
@@ -444,10 +443,20 @@ def create_appointment():
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Internal server error", "error": str(e)}), 500
+
+
+@api.route('/appointments/patient/<int:patient_id>', methods=['GET']) 
+@jwt_required()
+def get_appointments_by_patient(patient_id):
+    appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(Appointment.start_date_time.desc())
+    if not appointments:
+        return jsonify([]), 200
     
+    return jsonify([app.serialize() for app in appointments]), 200
+
 @api.route('/appointments/<int:appo_id>', methods=['PUT']) 
 @jwt_required()
-def update_appointment_status(appo_id):
+def update_appointment(appo_id):
     body = request.get_json()
     new_status = body.get("status") 
 
@@ -465,6 +474,8 @@ def update_appointment_status(appo_id):
 
     db.session.commit()
     return jsonify({"msg": f"Turno actualizado a {new_status}"}), 200
+
+    
 
 @api.route('/appointments', methods=['GET'])
 @jwt_required()
@@ -485,6 +496,43 @@ def get_appointments():
     appointments = result.scalars().all()
 
     return jsonify([appo.serialize() for appo in appointments]), 200
+
+@api.route('/appointments/<int:appointment_id>', methods=['GET', 'PUT'])
+@jwt_required()
+def get_single_appointment(appointment_id):
+    appointment = Appointment.query.get(appointment_id)
+    
+    if not appointment:
+        return jsonify({"msg": "Turno no encontrado"}), 404
+
+    if request.method == 'GET':
+        data = appointment.serialize()
+        data["patient_dni"] = appointment.patient.dni 
+        return jsonify(data), 200
+
+    if request.method == 'PUT':
+        body = request.get_json()
+        required_fields = [
+            "start_date_time", "end_date_time"
+        ]
+        for field in required_fields:
+            if field not in body or not body[field]:
+                return jsonify({"msg": f"El campo '{field}' es requerido"}), 400
+        try:
+            appointment.start_date_time = datetime.strptime(body['start_date_time'], "%Y-%m-%d %H:%M:%S")
+            appointment.end_date_time = datetime.strptime(body['end_date_time'], "%Y-%m-%d %H:%M:%S")
+            
+            if "notes" in body:
+                appointment.notes = body["notes"]
+            
+            appointment.updated_at = datetime.now()
+
+            db.session.commit()
+            return jsonify({"msg": "Turno reprogramado con éxito"}), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"msg": "Error al actualizar", "error": str(e)}), 500
 
 @api.route('/blocked-slots', methods=['GET'])
 @jwt_required()
@@ -627,3 +675,32 @@ def get_procedure_capacity():
 
     except Exception as e:
         return jsonify({"msg": "Error consultando capacidad", "error": str(e)}), 500
+
+@api.route('/patients', methods=['GET'])
+@jwt_required()
+def get_all_patients():
+    patients = Patient.query.all()
+    
+    results = []
+    for patient in patients:
+        patient_data = patient.serialize()
+        count = Appointment.query.filter_by(
+            patient_id=patient.id, 
+            status="scheduled"
+        ).count()
+        
+        patient_data["appointment_count"] = count
+        
+        results.append(patient_data)
+
+    return jsonify(results), 200
+
+@api.route('/patients/<int:patient_id>', methods=['GET'])
+@jwt_required()
+def get_single_patient(patient_id):
+    patient = db.session.get(Patient, patient_id)
+    
+    if not patient:
+        return jsonify({"msg": "Paciente no encontrado"}), 404
+
+    return jsonify(patient.serialize()), 200

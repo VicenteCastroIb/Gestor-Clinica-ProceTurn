@@ -1,4 +1,3 @@
-import React from "react";
 import { NavLink } from "react-router-dom";
 import { useState, useRef, useEffect, useContext } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
@@ -91,8 +90,12 @@ export const Sidebar = () => {
         <>
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <div className="logo-icon">DS</div>
-                    <span className="logo-text">DocSpot AI</span>
+                    <NavLink to="/" className="sidebar-header-link">
+                        <div className="logo-icon">
+                            <i className="bi bi-calendar-check" style={{ fontSize: "0.9rem" }}></i>
+                        </div>
+                        <span className="logo-text">ProceTurn</span>
+                    </NavLink>
                 </div>
                 <nav className="sidebar-nav">
                     <NavLink to="/" className="sidebar-nav-item">

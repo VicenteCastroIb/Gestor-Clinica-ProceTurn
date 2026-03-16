@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from "react";
+import { useContext, useEffect } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "react-router-dom";
@@ -12,7 +12,6 @@ export const Staff = () => {
         const url = `${backendURL}/api/users`;
 
         try {
-            console.log("Intentando fetch a:", url);
             const response = await fetch(url, {
                 method: "GET",
                 headers: {

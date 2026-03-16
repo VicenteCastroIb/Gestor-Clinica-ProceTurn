@@ -274,69 +274,84 @@ def delete_user(user_id):
 
 @api.route("/forgot-password", methods=["POST"])
 def forgot_password():
+
     data = request.get_json()
     email = data.get("email")
 
-    if not email:
-        return jsonify({"msg": "Email is required"}), 400
+    admin_email = current_app.config["MAIL_USERNAME"]
 
-    user = User.query.filter_by(email=email).first()
+    msg = Message(
+        subject="Solicitud de recuperación",
+        recipients=[admin_email],
+    )
 
-    if user:
-        token = generate_reset_token(user.id)
+    msg.body = f"""
+    Usuario solicitó recuperar contraseña
 
-        reset_link = f"http://localhost:5173/reset-password/{token}"
+    Email: {email}
+    """
 
-        msg = Message(
-            subject="Password Reset Request",
-            recipients=[user.email]
-        )
+    current_app.extensions['mail'].send(msg)
 
-        msg.body = f"""
-Para recuperar tu contraseña hacé click en el siguiente enlace:
-
-{reset_link}
-
-Este enlace expira en 15 minutos.
-"""
-
-        current_app.extensions['mail'].send(msg)
-
-    return jsonify({
-        "msg": "If that email exists, a recovery link has been sent."
-    }), 200
+    return jsonify({"msg": "Solicitud enviada"}), 200
 
 
-@api.route("/reset-password", methods=["POST"])
-def reset_password():
-    data = request.get_json()
+@api.route("/generate-reset/<int:user_id>", methods=["POST"])
+@jwt_required()
+def generate_reset(user_id):
 
-    token = data.get("token")
-    new_password = data.get("new_password")
+    current_user = get_jwt_identity()
+    admin = db.session.get(User, current_user)
 
-    if not token or not new_password:
-        return jsonify({
-            "msg": "Token and new password are required"
-        }), 400
-
-    user_id = verify_reset_token(token)
-
-    if not user_id:
-        return jsonify({
-            "msg": "Invalid or expired token"
-        }), 400
+    if admin.role != "admin":
+        return jsonify({"msg": "Unauthorized"}), 403
 
     user = db.session.get(User, user_id)
 
     if not user:
         return jsonify({"msg": "User not found"}), 404
 
+    token = generate_reset_token(user.id)
+
+    reset_link = f"http://localhost:3000/reset-password/{token}"
+
+    msg = Message(
+        subject="Recuperar contraseña",
+        recipients=[user.email]
+    )
+
+    msg.body = f"""
+    Para cambiar tu contraseña:
+
+    {reset_link}
+
+    Expira en 5 minutos.
+    """
+
+    mail.send(msg)
+
+    return jsonify({"msg": "Token enviado"}), 200
+
+@api.route("/reset-password", methods=["POST"])
+def reset_password():
+
+    data = request.get_json()
+
+    token = data.get("token")
+    new_password = data.get("password")
+
+    user_id = verify_reset_token(token)
+
+    if not user_id:
+        return jsonify({"msg": "Token invalido"}), 400
+
+    user = User.query.get(user_id)
+
     user.password_hash = generate_password_hash(new_password)
+
     db.session.commit()
 
-    return jsonify({
-        "msg": "Password has been reset successfully"
-    }), 200
+    return jsonify({"msg": "Password changed"})
 
 @api.route('/specialties', methods=['GET'])
 @jwt_required()

@@ -1,4 +1,4 @@
-import { useEffect, useContext, useMemo } from "react";
+import { useEffect, useContext, useMemo, useState } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import { useNavigate } from "react-router-dom";
 
@@ -6,6 +6,40 @@ export const Dashboard = () => {
     const { store, dispatch } = useContext(StoreContext);
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
+    const [notifications, setNotifications] = useState([]);
+    const [generatedLink, setGeneratedLink] = useState("");
+
+    const loadResetRequests = async () => {
+        try {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/admin/notifications`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                setNotifications(data);
+            }
+        } catch (err) { console.error("Error cargando notificaciones:", err); }
+    };
+
+    const approveReset = async (userId) => {
+        try {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/generate-reset/${userId}`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                setGeneratedLink(data.reset_url);
+                setNotifications(notifications.filter(n => n.id !== userId));
+
+                // Abrir el modal de Bootstrap
+                const modalElement = document.getElementById('linkModal');
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            }
+        } catch (err) { console.error("Error:", err); }
+    };
+
 
     const loadTodayAppointments = async () => {
         const today = new Date();
@@ -23,28 +57,29 @@ export const Dashboard = () => {
     };
 
     const updateStatus = async (appoId, newStatus) => {
-    try {
-        const resp = await fetch(
-            `${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appoId}`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ status: newStatus }),
+        try {
+            const resp = await fetch(
+                `${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appoId}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ status: newStatus }),
+                }
+            );
+            if (resp.ok) {
+                await loadTodayAppointments();
             }
-        );
-        if (resp.ok) {
-            await loadTodayAppointments();
+        } catch (err) {
+            console.error("Error actualizando turno:", err);
         }
-    } catch (err) {
-        console.error("Error actualizando turno:", err);
-    }
-};
+    };
 
     useEffect(() => {
         loadTodayAppointments();
+        loadResetRequests()
     }, []);
 
     const today = new Date();
@@ -91,6 +126,44 @@ export const Dashboard = () => {
 
     return (
         <div className="p-4" style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
+            {notifications.map((n) => (
+                <div key={n.id} className="alert alert-primary border-0 shadow-sm rounded-4 d-flex justify-content-between align-items-center p-3 mb-4">
+                    <div className="d-flex align-items-center gap-3">
+                        <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }}>
+                            <i className="bi bi-shield-lock"></i>
+                        </div>
+                        <div>
+                            <p className="mb-0 fw-bold">Solicitud de nueva contraseña</p>
+                            <small className="text-muted">{n.full_name} ({n.email})</small>
+                        </div>
+                    </div>
+                    <button className="btn btn-primary btn-sm rounded-3 px-3 fw-bold" onClick={() => approveReset(n.id)}>
+                        Aprobar y generar link
+                    </button>
+                </div>
+            ))}
+            <div className="modal fade" id="linkModal" tabIndex="-1" aria-hidden="true">
+                <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content border-0 shadow-lg rounded-4">
+                        <div className="modal-header bg-light border-0 py-3">
+                            <h5 className="modal-title fw-bold m-0">Link de Recuperación</h5>
+                            <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div className="modal-body p-4 text-center">
+                            <p className="text-muted small">Copia el siguiente enlace y envíaselo al usuario. <br /><strong>Expira en 5 minutos.</strong></p>
+                            <div className="input-group mb-3">
+                                <input type="text" className="form-control bg-light border-0 font-monospace small" value={generatedLink} readOnly />
+                                <button className="btn btn-primary" onClick={() => {
+                                    navigator.clipboard.writeText(generatedLink);
+                                    alert("¡Copiado!");
+                                }}>
+                                    <i className="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div className="mb-4">
                 <h4 className="fw-bold mb-0">
                     {dayNames[today.getDay()]}, {todayNumber} de {monthNames[todayMonth]} {todayYear}

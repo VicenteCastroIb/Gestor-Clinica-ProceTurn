@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import useGlobalReducer from '../hooks/useGlobalReducer';
+import { useNavigate } from 'react-router-dom';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import '../styles/chat.css';
 import {
@@ -15,74 +17,73 @@ import {
     ConversationHeader
 } from '@chatscope/chat-ui-kit-react';
 
+const BACKEND = import.meta.env.VITE_BACKEND_URL;
+
 export default function Chat() {
-    // 1. Fake data (Using the API later)
-    const [chats, setChats] = useState([
-        {
-            id: 1,
-            name: "Elena Gomez",
-            avatar: "https://ui-avatars.com/api/?name=Elena+Gomez&background=random",
-            lastSenderName: "Elena Gomez",
-            info: "Ayer, 10:30 AM",
-            messages: [
-                { text: "Hola doctor, quería confirmar mi turno del jueves.", sender: "Elena", direction: "incoming", position: "single" },
-                { text: "Hola Elena, el turno está confirmado. ¡Nos vemos el jueves!", sender: "yo", direction: "outgoing", position: "single" }
-            ],
-            unread: 0
-        },
-        {
-            id: 2,
-            name: "Adam Cooper",
-            avatar: "https://ui-avatars.com/api/?name=Adam+Cooper&background=random",
-            lastSenderName: "yo",
-            info: "Hace 2 horas",
-            messages: [
-                { text: "Recuerde traer los estudios pre-quirúrgicos.", sender: "yo", direction: "outgoing", position: "single" },
-                { text: "Entendido, gracias doctor.", sender: "Adam", direction: "incoming", position: "single" }
-            ],
-            unread: 1
-        },
-        {
-            id: 3,
-            name: "Raj Patel",
-            avatar: "https://ui-avatars.com/api/?name=Raj+Patel&background=random",
-            lastSenderName: "Raj Patel",
-            info: "Lunes",
-            messages: [
-                { text: "Doctor, ¿puedo tomar ibuprofeno para el dolor?", sender: "Raj", direction: "incoming", position: "last" }
-            ],
-            unread: 3
-        }
-    ]);
+    const navigate = useNavigate();
+    const { store } = useGlobalReducer();
+    const token = store.token;
+    const [patients, setPatients] = useState([]);
+    const [activePatientId, setActivePatientId] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const activePatient = patients.find(p => p.id === activePatientId);
 
-    const [activeChatId, setActiveChatId] = useState(1);
-    const activeChat = chats.find(c => c.id === activeChatId);
-    const [inputValue, setInputValue] = useState("");
+    // Load patients on mount
+    useEffect(() => {
+        fetch(`${BACKEND}/api/patients`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(r => r.json())
+            .then(data => setPatients(data))
+            .catch(err => console.error("Error cargando pacientes:", err));
+    }, [token]);
 
-    // 2. Handle send message
-    const handleSend = (text) => {
+    // Load messages when active patient changes
+    useEffect(() => {
+        if (!activePatientId) return;
+        setLoading(true);
+        fetch(`${BACKEND}/api/messages/${activePatientId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(r => r.json())
+            .then(data => setMessages(data))
+            .catch(err => console.error("Error cargando mensajes:", err))
+            .finally(() => setLoading(false));
+    }, [activePatientId]);
+
+    useEffect(() => {
+        if (!activePatientId) return;
+        const interval = setInterval(() => {
+            fetch(`${BACKEND}/api/messages/${activePatientId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(r => r.json())
+                .then(data => setMessages(data))
+                .catch(err => console.error("Error cargando mensajes:", err));
+        }, 2000);
+        return () => clearInterval(interval);
+    }, [activePatientId]);
+
+    const handleSend = async (text) => {
         if (!text.trim()) return;
-
-
-        const newMessage = {
-            text: text,
-            sender: "yo",
-            direction: "outgoing",
-            position: "single"
-        };
-
-        setChats(prevChats => prevChats.map(c => {
-            if (c.id === activeChatId) {
-                return { ...c, messages: [...c.messages, newMessage] };
-            }
-            return c;
-        }));
-        setInputValue("");
+        const response = await fetch(`${BACKEND}/api/messages/send`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ patient_id: activePatientId, body: text })
+        });
+        if (response.ok) {
+            const newMsg = await response.json();
+            setMessages(prev => [...prev, newMsg]);
+        }
     };
+
 
     return (
         <div className="bg-light min-vh-100 p-4">
-            
             <div className="mb-4">
                 <h4 className="fw-bold mb-0">Mensajes</h4>
                 <p className="text-muted small mb-0">Conversaciones recientes con pacientes</p>
@@ -91,56 +92,70 @@ export default function Chat() {
             <div className="card border-0 shadow-sm rounded-4 overflow-hidden" style={{ height: "calc(100vh - 200px)" }}>
                 <div style={{ height: "100%", position: "relative" }}>
                     <MainContainer>
-                        {/* Left Panel: Chat List */}
+                        {/* Left panel: Patient list */}
                         <Sidebar position="left" scrollable={false}>
                             <Search placeholder="Buscar chats..." />
                             <ConversationList>
-                                {chats.map(c => (
+                                {patients.map(p => (
                                     <Conversation
-                                        key={c.id}
-                                        name={c.name}
-                                        lastSenderName={c.lastSenderName}
-                                        info={c.messages[c.messages.length - 1]?.text}
-                                        active={c.id === activeChatId}
-                                        unreadCnt={c.unread}
-                                        onClick={() => setActiveChatId(c.id)}
+                                        key={p.id}
+                                        name={p.full_name}
+                                        lastSenderName={p.full_name}
+                                        info={p.phone || "Sin teléfono"}
+                                        active={p.id === activePatientId}
+                                        unreadCnt={p.unread_count || 0}
+                                        onClick={() => setActivePatientId(p.id)}
                                     >
-                                        <Avatar src={c.avatar} name={c.name} />
+                                        <Avatar
+                                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name)}&background=3a9e6e&color=fff`}
+                                            name={p.full_name}
+                                        />
                                     </Conversation>
                                 ))}
                             </ConversationList>
                         </Sidebar>
 
-                        {/* Right Panel: Active Chat */}
-                        {activeChat ? (
+                        {/* Right panel: Messages */}
+                        {activePatient ? (
                             <ChatContainer>
                                 <ConversationHeader>
                                     <ConversationHeader.Back />
-                                    <Avatar src={activeChat.avatar} name={activeChat.name} />
-                                    <ConversationHeader.Content userName={activeChat.name} info={activeChat.info} />
+                                    <Avatar
+                                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(activePatient.full_name)}&background=3a9e6e&color=fff`}
+                                        name={activePatient.full_name}
+                                    />
+                                    <ConversationHeader.Content
+                                        userName={activePatient.full_name}
+                                        info={activePatient.phone || "Sin teléfono"}
+                                        onClick={() => navigate(`/patient/${activePatient.id}`)}
+                                        style={{ cursor: "pointer" }}
+                                    />
                                 </ConversationHeader>
 
-                                <MessageList typingIndicator={false}>
-                                    {activeChat.messages.map((m, idx) => (
+                                <MessageList loading={loading} typingIndicator={false}>
+                                    {messages.map((m, idx) => (
                                         <Message
                                             key={idx}
                                             model={{
-                                                message: m.text,
-                                                sender: m.sender,
+                                                message: m.body,
+                                                sender: m.sender_name,
                                                 direction: m.direction,
-                                                position: m.position
+                                                position: "single"
                                             }}
                                         >
-                                            {m.direction === "incoming" && <Avatar src={activeChat.avatar} name={activeChat.name} />}
+                                            {m.direction === "incoming" && (
+                                                <Avatar
+                                                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(activePatient.full_name)}&background=3a9e6e&color=fff`}
+                                                    name={activePatient.full_name}
+                                                />
+                                            )}
                                         </Message>
                                     ))}
                                 </MessageList>
 
                                 <MessageInput
                                     placeholder="Escribe un mensaje aquí..."
-                                    value={inputValue}
-                                    onChange={val => setInputValue(val)}
-                                    onSend={() => handleSend(inputValue)}
+                                    onSend={handleSend}
                                     attachButton={false}
                                 />
                             </ChatContainer>
@@ -153,7 +168,6 @@ export default function Chat() {
                                 </MessageList>
                             </ChatContainer>
                         )}
-
                     </MainContainer>
                 </div>
             </div>

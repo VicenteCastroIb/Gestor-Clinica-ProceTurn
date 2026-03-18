@@ -47,8 +47,8 @@ def generate_sitemap(app):
 def generate_reset_token(user_id):
     payload = {
         "user_id": user_id,
-        "exp": datetime.utcnow() + timedelta(minutes=15),
-        "type": "password_reset"
+        "type": "password_reset",
+        "exp": datetime.utcnow() + timedelta(minutes=5)
     }
 
     token = jwt.encode(

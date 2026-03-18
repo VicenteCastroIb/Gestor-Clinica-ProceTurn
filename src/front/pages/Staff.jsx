@@ -44,6 +44,30 @@ export const Staff = () => {
         navigate("/editUser");
     };
 
+    const generateReset = async (id) => {
+        const backendURL = import.meta.env.VITE_BACKEND_URL;
+
+        try {
+            const response = await fetch(
+                `${backendURL}/api/generate-reset/${id}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${store.token}`
+                    }
+                }
+            );
+
+            const data = await response.json();
+
+            alert(data.msg);
+
+        } catch (error) {
+            console.error("Error generating reset:", error);
+        }
+    };
+
     return (
         <div className=" py-4 px-5" >
             <div className="d-flex justify-content-between align-items-start mb-4">
@@ -102,8 +126,25 @@ export const Staff = () => {
 
 
                                 <div className="mb-4" style={{ color: "#64748b", fontSize: "0.95rem" }}>
-                                    <div className="mb-2"><i className="fa-regular fa-envelope me-2"></i> {user.email}</div>
-                                    <div className="mb-2"><i className="fa-solid fa-phone me-2"></i> {user.phone}</div>
+                                    <div className="mb-2">
+                                        <i className="fa-regular fa-envelope me-2"></i>
+                                        <a
+                                            href={`https://mail.google.com/mail/?view=cm&to=${user.email}`}
+                                            target="_blank"
+                                            style={{ color: "inherit", textDecoration: "none" }}>
+                                            {user.email}
+                                        </a>
+                                    </div>
+                                    <div className="mb-2">
+                                        <i className="fa-solid fa-phone me-2"></i>
+                                        <a
+                                            href={`https://wa.me/${user.phone?.replace(/\D/g, '')}`}
+                                            target="_blank"
+                                            onClick={e => e.stopPropagation()}
+                                            style={{ color: "inherit", textDecoration: "none" }}>
+                                            {user.phone}
+                                        </a>
+                                    </div>
                                     <div><i className="fa-regular fa-id-card me-2"></i> DNI: {user.dni}</div>
                                 </div>
 
@@ -115,6 +156,13 @@ export const Staff = () => {
                                     <div className="d-flex gap-2">
                                         <button className="btn btn-outline-secondary btn-sm rounded-3 px-3">
                                             <i className="fa-regular fa-clock me-1"></i> Agenda
+                                        </button>
+
+                                        <button
+                                            className="btn btn-outline-warning btn-sm rounded-3 px-3"
+                                            onClick={() => generateReset(user.id)}
+                                        >
+                                            <i className="fa-solid fa-key me-1"></i> Reset pass
                                         </button>
 
                                         <button className="btn btn-outline-dark btn-sm rounded-3 px-3" onClick={() => handleEditClick(user)}>

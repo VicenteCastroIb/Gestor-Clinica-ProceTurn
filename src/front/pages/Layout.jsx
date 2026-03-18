@@ -19,7 +19,7 @@ export const Layout = () => {
 
         if (token && isTokenExpired(token)) {
             console.warn("Token detectado como expirado al cargar Layout.");
-            dispatch({ type: "logout" });
+            dispatch({ type: "logout_user" });
             navigate("/login");
         }
     }, [navigate, dispatch]);

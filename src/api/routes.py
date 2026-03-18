@@ -11,6 +11,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from twilio.rest import Client
 
 api = Blueprint('api', __name__)
+pending_resets = []
 
 # Allow CORS requests to this API
 CORS(api)
@@ -277,67 +278,80 @@ def delete_user(user_id):
 def forgot_password():
     data = request.get_json()
     email = data.get("email")
-
-    if not email:
-        return jsonify({"msg": "Email is required"}), 400
-
     user = User.query.filter_by(email=email).first()
-
+    
     if user:
-        token = generate_reset_token(user.id)
+        pending_resets.append({
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "timestamp": datetime.now().strftime("%H:%M")
+        })
+    
+    return jsonify({"msg": "Solicitud recibida"}), 200
 
-        reset_link = f"http://localhost:5173/reset-password/{token}"
+@api.route("/admin/notifications", methods=["GET"])
+@jwt_required()
+def get_notifications():
+    current_user = get_jwt_identity()
+    admin = db.session.get(User, current_user)
+    if not admin or admin.role != "admin":
+        return jsonify({"msg": "Unauthorized"}), 403
+        
+    return jsonify(pending_resets), 200
 
-        msg = mail_message(
+    msg = mail_message(
             subject="Password Reset Request",
             recipients=[user.email]
         )
 
-        msg.body = f"""
-Para recuperar tu contraseña hacé click en el siguiente enlace:
+@api.route("/generate-reset/<int:user_id>", methods=["POST"])
+@jwt_required()
+def generate_reset(user_id):
+    current_user = get_jwt_identity()
+    admin = db.session.get(User, current_user)
 
-{reset_link}
+    if not admin or admin.role != "admin":
+        return jsonify({"msg": "Solo los administradores pueden aprobar esto"}), 403
 
-Este enlace expira en 15 minutos.
-"""
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
 
-        current_app.extensions['mail'].send(msg)
+    token = generate_reset_token(user.id)
+
+    global pending_resets
+    pending_resets = [r for r in pending_resets if r['id'] != user_id]
 
     return jsonify({
-        "msg": "If that email exists, a recovery link has been sent."
+        "msg": "Cambio de contraseña aprobado",
+        "reset_token": token,
+        "reset_url": f"http://localhost:3000/reset-password/{token}"
     }), 200
-
 
 @api.route("/reset-password", methods=["POST"])
 def reset_password():
     data = request.get_json()
-
+    
     token = data.get("token")
-    new_password = data.get("new_password")
+    new_password = data.get("password") # Coincide con el frontend ahora
 
-    if not token or not new_password:
-        return jsonify({
-            "msg": "Token and new password are required"
-        }), 400
+    if not new_password:
+        return jsonify({"msg": "La contraseña es requerida"}), 400
 
     user_id = verify_reset_token(token)
 
     if not user_id:
-        return jsonify({
-            "msg": "Invalid or expired token"
-        }), 400
+        return jsonify({"msg": "El link es inválido o ha expirado"}), 400
 
-    user = db.session.get(User, user_id)
-
+    user = db.session.get(User, user_id) # Usar db.session.get es más moderno que query.get
     if not user:
-        return jsonify({"msg": "User not found"}), 404
+        return jsonify({"msg": "Usuario no encontrado"}), 404
 
     user.password_hash = generate_password_hash(new_password)
     db.session.commit()
 
-    return jsonify({
-        "msg": "Password has been reset successfully"
-    }), 200
+    return jsonify({"msg": "Contraseña actualizada correctamente"}), 200
 
 @api.route('/specialties', methods=['GET'])
 @jwt_required()
@@ -444,14 +458,19 @@ def get_appointments_by_patient(patient_id):
 @jwt_required()
 def update_appointment(appo_id):
     body = request.get_json()
-    new_status = body.get("status") 
+    new_status = body.get("status")
+
+    valid_statuses = ["scheduled", "confirmed", "cancelled", "arrived", "delayed", "unconfirmed"]
+    if new_status not in valid_statuses:
+        return jsonify({"msg": f"Estado inválido: {new_status}"}), 400
 
     appointment = db.session.get(Appointment, appo_id)
     if not appointment:
         return jsonify({"msg": "Turno no encontrado"}), 404
 
     appointment.status = new_status
-    if new_status == "confirmed":
+
+    if new_status in ["confirmed", "arrived"]:
         appointment.confirmed = True
 
     if new_status == "cancelled":
@@ -767,3 +786,26 @@ def receive_message():
 
     
     
+@api.route('/appointments/check-unconfirmed', methods=['POST'])
+@jwt_required()
+def check_unconfirmed_appointments():
+    now = datetime.now()
+    cutoff = now - timedelta(minutes=15)
+
+    late_appointments = Appointment.query.filter(
+        Appointment.status == "scheduled",
+        Appointment.start_date_time <= cutoff
+    ).all()
+
+    updated = []
+    for appo in late_appointments:
+        appo.status = "unconfirmed"
+        updated.append(appo.id)
+
+    if updated:
+        db.session.commit()
+
+    return jsonify({
+        "msg": f"{len(updated)} turnos marcados como no confirmados",
+        "updated_ids": updated
+    }), 200

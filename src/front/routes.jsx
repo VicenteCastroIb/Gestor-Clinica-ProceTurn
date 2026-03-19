@@ -18,6 +18,8 @@ import ResetPassword from "./pages/ResetPassword";
 import NewAppointment from "./components/NewAppointment";
 import { Patients } from "./pages/Patients";
 import { PatientProfile } from "./pages/PatientProfile";
+import Chat from "./components/Chat";
+
 export const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -37,6 +39,7 @@ export const router = createBrowserRouter(
         <Route path="/editUser" element={<ProtectedRoute adminOnly><EditUser /></ProtectedRoute>} />
         <Route path="/patients" element={<ProtectedRoute ><Patients /></ProtectedRoute>} />
         <Route path="/patient/:id" element={<ProtectedRoute><PatientProfile /></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
       </Route>
     </>
   )

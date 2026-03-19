@@ -5,10 +5,19 @@ import { useNavigate } from "react-router-dom";
 export const Navbar = () => {
 	const location = useLocation();
 	const navigate = useNavigate()
-	const isCalendarView = location.pathname === "/calendar";
-	const currentPath = location.pathname === "/"
-		? "Dashboard"
-		: location.pathname.split("/")[1].charAt(0).toUpperCase() + location.pathname.split("/")[1].slice(1);
+	const routeNames = {
+		"": "Tablero",
+		"calendar": "Calendario",
+		"patients": "Pacientes",
+		"patient": "Ficha de Paciente",
+		"staff": "Personal",
+		"signup": "Crear Usuario",
+		"new-appointment": "Nuevo Turno",
+		"edit-appointment": "Editar Turno",
+		"editUser": "Editar Personal"
+	};
+
+	const currentPath = routeNames[location.pathname.split("/")[1]] || location.pathname.split("/")[1];
 
 	return (
 		<nav className="navbar">

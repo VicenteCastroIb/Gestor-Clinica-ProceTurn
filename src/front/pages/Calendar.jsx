@@ -15,7 +15,7 @@ export const Calendar = () => {
     const { procedures } = useMedicalData();
     const [selectedProcedure, setSelectedProcedure] = useState("");
 
-    const [selectedDayNumber, setSelectedDayNumber] = useState(null);
+    const [selectedDayNumber, setSelectedDayNumber] = useState(new Date().getDate());
 
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     const currentMonthName = monthNames[viewDate.getMonth()];
@@ -103,7 +103,6 @@ export const Calendar = () => {
 
             if (resp.ok) {
                 await loadData();
-                setShowDayModal(false);
                 setCancellingAppo(null);
                 setCancelReason("");
                 setCalendarAlert({ show: true, msg: `Turno ${newStatus === 'cancelled' ? 'cancelado' : 'confirmado'} con éxito.`, type: "success" });
@@ -153,7 +152,6 @@ export const Calendar = () => {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (resp.ok) {
-                setShowDayModal(false);
                 setCalendarAlert({ show: true, msg: "Bloqueo eliminado con éxito.", type: "success" });
                 await loadData();
             } else {
@@ -190,7 +188,6 @@ export const Calendar = () => {
                 return currentDay >= slotStart && currentDay <= slotEnd;
             });
 
-
             let colorClass = "day-available";
             if (isBlocked) colorClass = "day-blocked";
             else if (activeAppos.length >= 8) colorClass = "day-full";
@@ -203,28 +200,18 @@ export const Calendar = () => {
                         {activeAppos.length > 0 && <span className="appo-count-badge">{activeAppos.length}</span>}
                     </div>
                     <div className="appo-dots mt-auto">
-                        {allDayAppos.map(appo => (
+                        {allDayAppos.slice(0, 10).map(appo => (
                             <div key={appo.id} className={`dot status-${appo.status}`} title={appo.patient_name}></div>
                         ))}
+                        {allDayAppos.length > 10 && (
+                            <span style={{ fontSize: "9px", fontWeight: 700, opacity: 0.7 }}>+{allDayAppos.length - 10}</span>
+                        )}
                     </div>
                 </div>
             );
         }
         return days;
     };
-
-    const PatientRow = ({ name, specialty }) => (
-        <div className="d-flex align-items-center justify-content-between p-2 rounded-3 mb-2 border bg-white shadow-sm">
-            <div className="d-flex align-items-center gap-2">
-                <div className="avatar-circle"></div>
-                <div>
-                    <p className="m-0 fw-bold x-small">{name}</p>
-                    <p className="m-0 text-muted extra-small">{specialty}</p>
-                </div>
-            </div>
-            <button className="btn btn-sm btn-outline-dark extra-small py-0 px-2">Asignar turno</button>
-        </div>
-    );
 
     return (
         <div className="bg-light min-vh-100 p-4">
@@ -270,8 +257,8 @@ export const Calendar = () => {
                     </div>
                 </div>
 
-                <div className={`row g-4 ${expandedPanel ? "flex-column" : ""}`}>
-                    <div className={expandedPanel ? "col-12" : "col-lg-4"}>
+                <div className={`row g-4 justify-content-center ${expandedPanel ? "flex-column" : ""}`}>
+                    <div className={selectedDayNumber ? (expandedPanel ? "col-12" : "col-lg-4") : "d-none"}>
                         <div className="card border-0 shadow-sm rounded-4 p-4 h-100">
                             {selectedDayNumber ? (
                                 <>
@@ -315,7 +302,12 @@ export const Calendar = () => {
                                                 <div key={appo.id} className="border rounded-3 p-3 mb-2 bg-white shadow-sm">
                                                     <div className="d-flex justify-content-between align-items-start">
                                                         <div>
-                                                            <p className="fw-bold mb-1">{appo.patient_name}</p>
+                                                            <p
+                                                                className="fw-bold mb-1"
+                                                                style={{ cursor: "pointer" }}
+                                                                onClick={() => navigate(`/patient/${appo.patient_id}`)}>
+                                                                {appo.patient_name}
+                                                            </p>
                                                             <p className="text-muted extra-small mb-1">
                                                                 <i className="bi bi-clock me-1"></i>
                                                                 {new Date(appo.start_date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -325,8 +317,20 @@ export const Calendar = () => {
                                                                 {appo.specialty_name} — {appo.procedure_name}
                                                             </p>
                                                         </div>
-                                                        <span className={`badge bg-${appo.status === 'confirmed' ? 'success' : appo.status === 'cancelled' ? 'danger' : 'warning'}`}>
-                                                            {appo.status === 'confirmed' ? 'CONFIRMADO' : appo.status === 'cancelled' ? 'CANCELADO' : 'PROGRAMADO'}
+                                                        <span className={`badge bg-${{
+                                                            confirmed: 'success',
+                                                            cancelled: 'danger',
+                                                            delayed: 'warning',
+                                                            scheduled: 'secondary',
+                                                            postponed: 'info'
+                                                        }[appo.status] || 'dark'}`}>
+                                                            {{
+                                                                confirmed: 'Confirmado',
+                                                                cancelled: 'Cancelado',
+                                                                delayed: 'Demorado',
+                                                                scheduled: 'Sin confirmar',
+                                                                postponed: 'Pospuesto'
+                                                            }[appo.status] || appo.status}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -338,24 +342,45 @@ export const Calendar = () => {
                                             </div>
                                         )}
                                     </div>
+                                    {selectedDayBlockedSlots.length > 0 && (
+                                        <div className="mt-3 pt-3 border-top">
+                                            <p className="fw-bold small mb-2">
+                                                <i className="bi bi-slash-circle me-2 text-danger"></i>
+                                                Bloqueos activos este día
+                                            </p>
+                                            {selectedDayBlockedSlots.map(slot => (
+                                                <div key={slot.id} className="border rounded-3 p-2 mb-2 bg-white shadow-sm">
+                                                    <div className="d-flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <p className="small fw-bold text-danger mb-1">
+                                                                <i className="bi bi-lock-fill me-1"></i>
+                                                                {slot.reason || "Sin motivo especificado"}
+                                                            </p>
+                                                            <p className="extra-small text-muted mb-0">
+                                                                <i className="bi bi-calendar-range me-1"></i>
+                                                                {new Date(slot.start_date_time).toLocaleDateString()} — {new Date(slot.end_date_time).toLocaleDateString()}
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            className="btn btn-sm btn-outline-danger px-2 py-0"
+                                                            onClick={() => {
+                                                                setPendingDeleteSlotId(slot.id);
+                                                                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmDeleteSlotModal'));
+                                                                modal.show();
+                                                            }}
+                                                        >
+                                                            <i className="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </>
-                            ) : (
-                                <>
-                                    <h6 className="fw-bold mb-4 ms-1">Lista de Espera Activa</h6>
-                                    <div className="mb-4">
-                                        <p className="section-title urgent py-1 px-2 rounded mb-3">URGENTE (PRÓXIMAS 48H)</p>
-                                        <PatientRow name="Elena Gomez" specialty="Cardiología" />
-                                        <PatientRow name="Raj Patel" specialty="Dermatología" />
-                                    </div>
-                                    <div>
-                                        <p className="section-title routine py-1 px-2 rounded mb-3">RUTINA (PRÓXIMAS 2 SEMANAS)</p>
-                                        <PatientRow name="Adam Cooper" specialty="Dermatología" />
-                                    </div>
-                                </>
-                            )}
+                            ) : null}
                         </div>
                     </div>
-                    <div className={expandedPanel ? "col-12" : "col-lg-8"}>
+                    <div className={selectedDayNumber ? (expandedPanel ? "col-12" : "col-lg-8") : "col-12"}>
                         <div className="card border-0 shadow-sm rounded-4 p-4">
                             <div className="d-flex justify-content-between align-items-center mb-4">
                                 <h6 className="fw-bold m-0 text-secondary">Pronóstico de Disponibilidad Próxima</h6>

@@ -12,10 +12,11 @@ export const PatientProfile = () => {
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState({ start: "", end: "" });
     const statusTranslations = {
-        scheduled: "Programado",
+        scheduled: "Sin confirmar",
         confirmed: "Confirmado",
         cancelled: "Cancelado",
-        postponed: "Pospuesto"
+        postponed: "Pospuesto",
+        delayed: "Demorado"
     };
 
 
@@ -68,7 +69,14 @@ export const PatientProfile = () => {
         };
     }, [filteredAppointments]);
 
-    const statusColor = (s) => s === "confirmed" ? "success" : s === "cancelled" ? "danger" : s === "postponed" ? "info" : "warning";
+    const statusColor = (s) => {
+        if (s === "confirmed") return "success";
+        if (s === "cancelled") return "danger";
+        if (s === "postponed") return "info";
+        if (s === "delayed") return "warning";
+        if (s === "scheduled") return "secondary";
+        return "dark";
+    };
 
     if (loading) return <div className="p-5 text-center">Cargando ficha del paciente...</div>;
 
@@ -95,20 +103,20 @@ export const PatientProfile = () => {
                             <p className="small mb-2">
                                 <i className="bi bi-envelope me-2 text-primary"></i>
                                 <a
-                                    href={`https://mail.google.com/mail/?view=cm&to=${patient.email}`}
+                                    href={`https://mail.google.com/mail/?view=cm&to=${patient?.email}`}
                                     target="_blank"
                                     style={{ color: "inherit", textDecoration: "none" }}>
-                                    {patient.email}
+                                    {patient?.email}
                                 </a>
                             </p>
                             <p className="small mb-2">
                                 <i className="bi bi-telephone me-2 text-primary"></i>
                                 <strong>Teléfono:</strong> <a
-                                    href={`https://wa.me/${patient.phone?.replace(/\D/g, '')}`}
+                                    href={`https://wa.me/${patient?.phone?.replace(/\D/g, '')}`}
                                     target="_blank"
                                     onClick={e => e.stopPropagation()}
                                     style={{ color: "inherit", textDecoration: "none" }}>
-                                    {patient.phone}
+                                    {patient?.phone}
                                 </a>
                             </p>
                             <p className="small mb-0">
@@ -122,6 +130,21 @@ export const PatientProfile = () => {
                                     </>
                                 ) : 'No registrada'}
                             </p>
+                            <button
+                                className={`btn btn-sm mt-3 w-100 ${patient?.is_active ? "btn-outline-danger" : "btn-outline-success"}`}
+                                onClick={async () => {
+                                    const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/patients/${patient.id}`, {
+                                        method: "PUT",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                            "Authorization": `Bearer ${store.token}`
+                                        },
+                                        body: JSON.stringify({ is_active: !patient.is_active })
+                                    });
+                                    if (resp.ok) setPatient({ ...patient, is_active: !patient.is_active });
+                                }}>
+                                {patient?.is_active ? "Desactivar paciente" : "Activar paciente"}
+                            </button>
                         </div>
                     </div>
                 </div>

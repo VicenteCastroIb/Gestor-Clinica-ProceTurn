@@ -8,6 +8,7 @@ export const Dashboard = () => {
     const token = localStorage.getItem("token");
     const [notifications, setNotifications] = useState([]);
     const [generatedLink, setGeneratedLink] = useState("");
+    const [toasts, setToasts] = useState([]);
 
     const loadResetRequests = async () => {
         try {
@@ -32,7 +33,6 @@ export const Dashboard = () => {
                 setGeneratedLink(data.reset_url);
                 setNotifications(notifications.filter(n => n.id !== userId));
 
-                // Abrir el modal de Bootstrap
                 const modalElement = document.getElementById('linkModal');
                 const modal = new bootstrap.Modal(modalElement);
                 modal.show();
@@ -52,25 +52,43 @@ export const Dashboard = () => {
             if (resp.ok) {
                 const data = await resp.json();
                 dispatch({ type: "set_appointments", payload: data });
+                mostrarNotificaciones(data, "scheduled");
             }
         } catch (err) { console.error("Error cargando turnos:", err); }
     };
 
-    const checkUnconfirmed = async () => {
+    const checkDelayed = async () => {
         try {
-            await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments/check-unconfirmed`, {
+            await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments/check-delayed`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` }
             });
             await loadTodayAppointments();
         } catch (err) {
-            console.error("Error checking unconfirmed:", err);
+            console.error("Error checking delayed:", err);
         }
     };
 
+    const checkUpcoming = async () => {
+        try {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments/check-upcoming`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                mostrarNotificaciones(data, "upcoming");
+            }
+        } catch (err) { console.error("Error:", err); }
+    };
+
     useEffect(() => {
-        checkUnconfirmed();
-        const interval = setInterval(checkUnconfirmed, 60000);
+        checkDelayed();
+        checkUpcoming();
+        const interval = setInterval(() => {
+            checkDelayed();
+            checkUpcoming();
+        }, 60000);
         return () => clearInterval(interval);
     }, []);
 
@@ -119,28 +137,50 @@ export const Dashboard = () => {
     }, [store.appointments]);
 
     const stats = useMemo(() => {
-        const total = todayAppointments.length;
+        const total = todayAppointments.filter(a => a.status !== "cancelled").length;
         const confirmed = todayAppointments.filter(a => a.status === "confirmed").length;
         const cancelled = todayAppointments.filter(a => a.status === "cancelled").length;
         const scheduled = todayAppointments.filter(a => a.status === "scheduled").length;
-        return { total, confirmed, cancelled, scheduled };
+        const delayed = todayAppointments.filter(a => a.status === "delayed").length;
+        return { total, confirmed, cancelled, scheduled, delayed };
     }, [todayAppointments]);
 
     const statusColor = (status) => {
-        if (status === "confirmed" || status === "arrived") return "success";
+        if (status === "confirmed") return "success";
         if (status === "cancelled") return "danger";
         if (status === "delayed") return "warning";
-        if (status === "unconfirmed") return "dark";
-        return "secondary";
+        if (status === "scheduled") return "secondary";
+        if (status === "postponed") return "info";
+        return "dark";
     };
 
     const statusLabel = (status) => {
         if (status === "confirmed") return "Confirmado";
         if (status === "cancelled") return "Cancelado";
-        if (status === "arrived") return "Llegó";
         if (status === "delayed") return "Demorado";
-        if (status === "unconfirmed") return "Sin confirmar";
-        return "Programado";
+        if (status === "scheduled") return "Sin confirmar";
+        if (status === "postponed") return "Pospuesto";
+        return status;
+    };
+
+    const mostrarNotificaciones = (turnos, tipo = "scheduled") => {
+        const yaNotificados = JSON.parse(localStorage.getItem("notificados") || "[]");
+
+        const sinConfirmar = turnos.filter(
+            t => (tipo === "scheduled" ? t.status === "scheduled" : t.status === "scheduled")
+                && !yaNotificados.includes(t.id)
+        );
+
+        if (sinConfirmar.length === 0) return;
+
+        localStorage.setItem("notificados", JSON.stringify([
+            ...yaNotificados,
+            ...sinConfirmar.map(t => t.id)
+        ]));
+
+        setToasts(prev => [...prev, ...sinConfirmar.map(t => ({ ...t, tipo }))]);
+
+        setTimeout(() => setToasts([]), 6000);
     };
 
     return (
@@ -194,7 +234,7 @@ export const Dashboard = () => {
                 {[
                     { label: "Turnos Hoy", value: stats.total, icon: "bi-calendar-check", color: "#2ECC71", bg: "#eafaf1" },
                     { label: "Confirmados", value: stats.confirmed, icon: "bi-check-circle", color: "#2ECC71", bg: "#eafaf1" },
-                    { label: "Programados", value: stats.scheduled, icon: "bi-clock", color: "#f39c12", bg: "#fef9e7" },
+                    { label: "Sin confirmar", value: stats.scheduled, icon: "bi-question-circle", color: "#1a1a1a", bg: "#f1f3f5" },
                     { label: "Cancelados", value: stats.cancelled, icon: "bi-x-circle", color: "#e74c3c", bg: "#fdedec" },
                 ].map((stat, idx) => (
                     <div className="col-6 col-md-3" key={idx}>
@@ -251,7 +291,12 @@ export const Dashboard = () => {
                                                     style={{ width: 32, height: 32, backgroundColor: "#e0e7ff", fontSize: "0.75rem", color: "#4f46e5" }}>
                                                     {appo.patient_name?.split(" ").map(n => n[0]).join("").slice(0, 2)}
                                                 </div>
-                                                <span className="small fw-semibold">{appo.patient_name}</span>
+                                                <span
+                                                    className="small fw-semibold"
+                                                    style={{ cursor: "pointer" }}
+                                                    onClick={() => navigate(`/patient/${appo.patient_id}`)}>
+                                                    {appo.patient_name}
+                                                </span>
                                             </div>
                                         </td>
                                         <td className="small text-muted">{appo.procedure_name}</td>
@@ -266,8 +311,7 @@ export const Dashboard = () => {
                                                 <button
                                                     className="btn btn-outline-dark btn-sm rounded-3 px-3 dropdown-toggle"
                                                     data-bs-toggle="dropdown"
-                                                    disabled={appo.status === "cancelled" || appo.status === "arrived" || appo.status === "unconfirmed"}
-                                                >
+                                                    disabled={appo.status === "cancelled"}>
                                                     Acciones
                                                 </button>
                                                 <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
@@ -275,18 +319,16 @@ export const Dashboard = () => {
                                                         <button
                                                             className="dropdown-item small"
                                                             disabled={appo.status !== "scheduled"}
-                                                            onClick={() => updateStatus(appo.id, "arrived")}
-                                                        >
-                                                            <i className="bi bi-person-check me-2 text-primary"></i>
-                                                            Confirmar llegada
+                                                            onClick={() => updateStatus(appo.id, "confirmed")}>
+                                                            <i className="bi bi-check-circle me-2 text-success"></i>
+                                                            Confirmar turno
                                                         </button>
                                                     </li>
                                                     <li>
                                                         <button
                                                             className="dropdown-item small"
-                                                            disabled={appo.status !== "scheduled"}
-                                                            onClick={() => updateStatus(appo.id, "delayed")}
-                                                        >
+                                                            disabled={appo.status !== "scheduled" && appo.status !== "confirmed" && appo.status !== "postponed"}
+                                                            onClick={() => updateStatus(appo.id, "delayed")}>
                                                             <i className="bi bi-clock-history me-2 text-warning"></i>
                                                             Marcar demora
                                                         </button>
@@ -295,11 +337,19 @@ export const Dashboard = () => {
                                                     <li>
                                                         <button
                                                             className="dropdown-item small"
-                                                            disabled={appo.status !== "scheduled" && appo.status !== "postponed"}
-                                                            onClick={() => navigate(`/edit-appointment/${appo.id}`)}
-                                                        >
+                                                            disabled={appo.status === "cancelled" || appo.status === "confirmed"}
+                                                            onClick={() => navigate(`/edit-appointment/${appo.id}`)}>
                                                             <i className="fa-regular fa-pen-to-square me-2"></i>
                                                             Editar
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button
+                                                            className="dropdown-item small text-danger"
+                                                            disabled={appo.status === "cancelled" || appo.status === "confirmed"}
+                                                            onClick={() => updateStatus(appo.id, "cancelled")}>
+                                                            <i className="bi bi-x-circle me-2 text-danger"></i>
+                                                            Cancelar turno
                                                         </button>
                                                     </li>
                                                 </ul>
@@ -320,6 +370,29 @@ export const Dashboard = () => {
                         </button>
                     </div>
                 )}
+            </div>
+            <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 1080 }}>
+                {toasts.map(t => (
+                    <div key={t.id} className="toast show mb-2 shadow rounded-4 border-0">
+                        <div className={`toast-header border-0 ${t.tipo === "upcoming" ? "bg-info" : "bg-warning"}`}>
+                            <i className={`bi ${t.tipo === "upcoming" ? "bi-bell-fill" : "bi-exclamation-triangle-fill"} me-2`}></i>
+                            <strong className="me-auto">
+                                {t.tipo === "upcoming" ? "Turno mañana sin confirmar" : "Turno sin confirmar"}
+                            </strong>
+                            <button className="btn-close" onClick={() => setToasts([])}></button>
+                        </div>
+                        <div className="toast-body bg-white">
+                            <p className="fw-bold mb-1">{t.patient_name}</p>
+                            <p className="small text-muted mb-1">
+                                <i className="bi bi-clock me-1"></i>
+                                {new Date(t.start_date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
+                            </p>
+                            <span className={`badge ${t.tipo === "upcoming" ? "bg-info" : "bg-warning text-dark"}`}>
+                                {t.tipo === "upcoming" ? "Recordatorio 24hs" : "Sin confirmar"}
+                            </span>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

@@ -67,7 +67,7 @@ export const Sidebar = () => {
     const handleLogout = () => {
         dispatch({
             type: "logout",
-            payloasd: null
+            payload: null
         });
         window.location.href = "/login";
     };
@@ -77,13 +77,13 @@ export const Sidebar = () => {
                 setIsOpen(false);
             }
         };
-        if (setIsOpen) {
+        if (isOpen) {
             document.addEventListener("mousedown", handleClickOutside);
         }
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, []);
+    }, [isOpen]);
 
 
     return (

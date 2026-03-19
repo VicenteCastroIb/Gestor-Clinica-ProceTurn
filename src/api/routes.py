@@ -222,7 +222,6 @@ def update_user(user_id):
         )
         current_app.extensions['mail'].send(msg)
 
-    current_admin = get_jwt_identity()
     date_time = datetime.now(timezone.utc)
 
     changes_resume = {
@@ -284,7 +283,7 @@ def forgot_password():
             "id": user.id,
             "email": user.email,
             "full_name": user.full_name,
-            "timestamp": datetime.now().strftime("%H:%M")
+            "timestamp": datetime.now(timezone.utc).strftime("%H:%M")
         })
     
     return jsonify({"msg": "Solicitud recibida"}), 200
@@ -329,7 +328,7 @@ def reset_password():
     data = request.get_json()
     
     token = data.get("token")
-    new_password = data.get("password") # Coincide con el frontend ahora
+    new_password = data.get("password")
 
     if not new_password:
         return jsonify({"msg": "La contraseña es requerida"}), 400
@@ -339,7 +338,7 @@ def reset_password():
     if not user_id:
         return jsonify({"msg": "El link es inválido o ha expirado"}), 400
 
-    user = db.session.get(User, user_id) # Usar db.session.get es más moderno que query.get
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
 
@@ -440,43 +439,6 @@ def create_appointment():
         return jsonify({"msg": "Internal server error", "error": str(e)}), 500
 
 
-@api.route('/appointments/patient/<int:patient_id>', methods=['GET']) 
-@jwt_required()
-def get_appointments_by_patient(patient_id):
-    appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(Appointment.start_date_time.desc())
-    if not appointments:
-        return jsonify([]), 200
-    
-    return jsonify([app.serialize() for app in appointments]), 200
-
-@api.route('/appointments/<int:appo_id>', methods=['PUT']) 
-@jwt_required()
-def update_appointment(appo_id):
-    body = request.get_json()
-    new_status = body.get("status")
-
-    valid_statuses = ["scheduled", "confirmed", "cancelled", "arrived", "delayed", "unconfirmed"]
-    if new_status not in valid_statuses:
-        return jsonify({"msg": f"Estado inválido: {new_status}"}), 400
-
-    appointment = db.session.get(Appointment, appo_id)
-    if not appointment:
-        return jsonify({"msg": "Turno no encontrado"}), 404
-
-    appointment.status = new_status
-
-    if new_status in ["confirmed", "arrived"]:
-        appointment.confirmed = True
-
-    if new_status == "cancelled":
-        appointment.cancellation_date = datetime.now(timezone.utc)
-        appointment.cancellation_reason = body.get("cancellation_reason", None)
-
-    db.session.commit()
-    return jsonify({"msg": f"Turno actualizado a {new_status}"}), 200
-
-    
-
 @api.route('/appointments', methods=['GET'])
 @jwt_required()
 def get_appointments():
@@ -497,11 +459,22 @@ def get_appointments():
 
     return jsonify([appo.serialize() for appo in appointments]), 200
 
+
+@api.route('/appointments/patient/<int:patient_id>', methods=['GET'])
+@jwt_required()
+def get_appointments_by_patient(patient_id):
+    appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(Appointment.start_date_time.desc())
+    if not appointments:
+        return jsonify([]), 200
+
+    return jsonify([app.serialize() for app in appointments]), 200
+
+
 @api.route('/appointments/<int:appointment_id>', methods=['GET', 'PUT'])
 @jwt_required()
-def get_single_appointment(appointment_id):
-    appointment = Appointment.query.get(appointment_id)
-    
+def handle_single_appointment(appointment_id):
+    appointment = db.session.get(Appointment, appointment_id)
+
     if not appointment:
         return jsonify({"msg": "Turno no encontrado"}), 404
 
@@ -510,29 +483,87 @@ def get_single_appointment(appointment_id):
         data["patient_dni"] = appointment.patient.dni 
         return jsonify(data), 200
 
-    if request.method == 'PUT':
-        body = request.get_json()
-        required_fields = [
-            "start_date_time", "end_date_time"
-        ]
-        for field in required_fields:
-            if field not in body or not body[field]:
-                return jsonify({"msg": f"El campo '{field}' es requerido"}), 400
-        try:
+    body = request.get_json()
+    if not body:
+        return jsonify({"msg": "Missing data"}), 400
+
+    try:
+        new_status = body.get("status")
+        if new_status:
+            valid_statuses = ["scheduled", "confirmed", "cancelled", "delayed", "postponed"]
+            if new_status not in valid_statuses:
+                return jsonify({"msg": f"Estado inválido: {new_status}"}), 400
+
+            appointment.status = new_status
+
+            if new_status == "confirmed":
+                appointment.confirmed = True
+
+            if new_status == "cancelled":
+                appointment.cancellation_date = datetime.now(timezone.utc)
+                appointment.cancellation_reason = body.get("cancellation_reason", None)
+
+        if "start_date_time" in body and "end_date_time" in body:
             appointment.start_date_time = datetime.strptime(body['start_date_time'], "%Y-%m-%d %H:%M:%S")
             appointment.end_date_time = datetime.strptime(body['end_date_time'], "%Y-%m-%d %H:%M:%S")
-            
-            if "notes" in body:
-                appointment.notes = body["notes"]
-            
-            appointment.updated_at = datetime.now()
 
-            db.session.commit()
-            return jsonify({"msg": "Turno reprogramado con éxito"}), 200
-            
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"msg": "Error al actualizar", "error": str(e)}), 500
+        if "notes" in body:
+            appointment.notes = body["notes"]
+
+        appointment.updated_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+        return jsonify({
+            "msg": "Turno actualizado con éxito",
+            "appointment": appointment.serialize()
+        }), 200
+
+    except ValueError as e:
+        return jsonify({"msg": "Formato de fecha inválido", "error": str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": "Error al actualizar", "error": str(e)}), 500
+
+@api.route('/appointments/check-delayed', methods=['POST'])
+@jwt_required()
+def check_delayed_appointments():
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(minutes=15)
+
+    late_appointments = Appointment.query.filter(
+        Appointment.status == "scheduled",
+        Appointment.start_date_time <= cutoff
+    ).all()
+
+    updated = []
+    for appo in late_appointments:
+        appo.status = "delayed"
+        updated.append(appo.id)
+
+    if updated:
+        db.session.commit()
+
+    return jsonify({
+        "msg": f"{len(updated)} turnos marcados como demorados",
+        "updated_ids": updated
+    }), 200
+
+
+@api.route('/appointments/check-upcoming', methods=['POST'])
+@jwt_required()
+def check_upcoming_appointments():
+    now = datetime.now(timezone.utc)
+    in_24h_start = now + timedelta(hours=24)
+    in_24h_end = now + timedelta(hours=25)
+
+    upcoming = Appointment.query.filter(
+        Appointment.status == "scheduled",
+        Appointment.confirmed == False,
+        Appointment.start_date_time >= in_24h_start,
+        Appointment.start_date_time <= in_24h_end
+    ).all()
+
+    return jsonify([appo.serialize() for appo in upcoming]), 200
 
 @api.route('/blocked-slots', methods=['GET'])
 @jwt_required()
@@ -684,9 +715,9 @@ def get_all_patients():
     results = []
     for patient in patients:
         patient_data = patient.serialize()
-        count = Appointment.query.filter_by(
-            patient_id=patient.id, 
-            status="scheduled"
+        count = Appointment.query.filter(
+            Appointment.patient_id == patient.id,
+            Appointment.status != "cancelled"
         ).count()
         
         patient_data["appointment_count"] = count
@@ -705,26 +736,20 @@ def get_single_patient(patient_id):
 
     return jsonify(patient.serialize()), 200
 
-@api.route('/appointments/check-unconfirmed', methods=['POST'])
+
+@api.route('/patients/<int:patient_id>', methods=['PUT'])
 @jwt_required()
-def check_unconfirmed_appointments():
-    now = datetime.now()
-    cutoff = now - timedelta(minutes=15)
+def update_patient(patient_id):
+    patient = db.session.get(Patient, patient_id)
+    if not patient:
+        return jsonify({"msg": "Paciente no encontrado"}), 404
 
-    late_appointments = Appointment.query.filter(
-        Appointment.status == "scheduled",
-        Appointment.start_date_time <= cutoff
-    ).all()
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing data"}), 400
 
-    updated = []
-    for appo in late_appointments:
-        appo.status = "unconfirmed"
-        updated.append(appo.id)
+    if "is_active" in data:
+        patient.is_active = data["is_active"]
 
-    if updated:
-        db.session.commit()
-
-    return jsonify({
-        "msg": f"{len(updated)} turnos marcados como no confirmados",
-        "updated_ids": updated
-    }), 200
+    db.session.commit()
+    return jsonify({"msg": "Paciente actualizado", "patient": patient.serialize()}), 200

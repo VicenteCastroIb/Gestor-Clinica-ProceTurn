@@ -13,6 +13,8 @@ const NewAppointment = () => {
     const [searchParams] = useSearchParams();
     const dateFormUrl = searchParams.get("date");
     const dniFormUrl = searchParams.get("dni");
+    const procedureIdFromUrl = searchParams.get("procedure_id");
+    const specialtyIdFromUrl = searchParams.get("specialty_id");
 
     const initialFormState = {
         date: dateFormUrl || "",
@@ -20,8 +22,8 @@ const NewAppointment = () => {
         end_date_time: "",
         dni: dniFormUrl || "",
         user_id: store.user?.id || "",
-        specialty_id: "",
-        procedure_id: "",
+        specialty_id: specialtyIdFromUrl || "",
+        procedure_id: procedureIdFromUrl || "",
         notes: ""
     };
 

@@ -389,12 +389,12 @@ def create_appointment():
     body = request.get_json()
         
     if 'dni' not in body or not body['dni']:
-        return jsonify({"msg": "DNI is required to identify the patient"}), 400
+        return jsonify({"msg": "El DNI es obligatorio para identificar al paciente"}), 400
     
     patient = Patient.query.filter_by(dni=body['dni']).first()
 
     if not patient:
-        return jsonify({"msg": "No patient found registered with this DNI"}), 404
+        return jsonify({"msg": "No se encontró ningún paciente registrado con este DNI"}), 404
 
     required_fields = [
         "start_date_time", "end_date_time", 
@@ -402,7 +402,7 @@ def create_appointment():
     ]
     for field in required_fields:
         if field not in body or not body[field]:
-            return jsonify({"msg": f"The field '{field}' is required"}), 400
+            return jsonify({"msg": f"El campo '{field}' es obligatorio"}), 400
 
     already_booked = Appointment.query.filter_by(
         patient_id=patient.id,
@@ -426,7 +426,7 @@ def create_appointment():
         ).first()
 
         if not availability:
-            return jsonify({"msg": "This time slot is not available for this procedure"}), 400
+            return jsonify({"msg": "Este bloque horario no está disponible para este procedimiento"}), 400
         
         current_appointments = Appointment.query.filter_by(
             start_date_time=start_dt,
@@ -434,7 +434,7 @@ def create_appointment():
         ).count()
 
         if current_appointments >= availability.capacity:
-            return jsonify({"msg": f"Fully booked. All {availability.capacity} machines are busy at this time."}), 400
+            return jsonify({"msg": f"Agenda llena. Las {availability.capacity} máquinas están ocupadas en este horario."}), 400
 
         new_appointment = Appointment(
             start_date_time=start_dt,
@@ -461,15 +461,15 @@ def create_appointment():
         db.session.commit()
 
         return jsonify({
-            "msg": "Appointment created successfully",
+            "msg": "Turno creado exitosamente",
             "appointment": new_appointment.serialize()
         }), 201
 
     except ValueError as e:
-        return jsonify({"msg": "Invalid date format", "error": str(e)}), 400
+        return jsonify({"msg": "Formato de fecha inválido", "error": str(e)}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({"msg": "Internal server error", "error": str(e)}), 500
+        return jsonify({"msg": "Error interno del servidor", "error": str(e)}), 500
 
 
 @api.route('/appointments', methods=['GET'])

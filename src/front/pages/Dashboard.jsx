@@ -397,9 +397,9 @@ export const Dashboard = () => {
                         <div className={`toast-header border-0 ${t.tipo === "upcoming" ? "bg-info" : "bg-warning"}`}>
                             <i className={`bi ${t.tipo === "upcoming" ? "bi-bell-fill" : "bi-exclamation-triangle-fill"} me-2`}></i>
                             <strong className="me-auto">
-                                {t.tipo === "upcoming" ? "Turno mañana sin confirmar" : "Turno sin confirmar"}
+                                {t.tipo === "upcoming" ? "Turno mañana sin confirmar" : "Turno pendiente de confirmación"}
                             </strong>
-                            <button className="btn-close" onClick={() => setToasts([])}></button>
+                            <button className="btn-close" onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}></button>
                         </div>
                         <div className="toast-body bg-white">
                             <p className="fw-bold mb-1">{t.patient_name}</p>
@@ -408,7 +408,7 @@ export const Dashboard = () => {
                                 {new Date(t.start_date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} hs
                             </p>
                             <span className={`badge ${t.tipo === "upcoming" ? "bg-info" : "bg-warning text-dark"}`}>
-                                {t.tipo === "upcoming" ? "Recordatorio 24hs" : "Sin confirmar"}
+                                {t.tipo === "upcoming" ? "Recordatorio 24hs" : "Programado"}
                             </span>
                         </div>
                     </div>

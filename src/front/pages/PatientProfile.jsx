@@ -75,7 +75,7 @@ export const PatientProfile = () => {
         if (s === "postponed") return "info";
         if (s === "delayed") return "dark";
         if (s === "scheduled") return "warning";
-        return "dark";
+        return "secondary";
     };
 
     if (loading) return <div className="p-5 text-center">Cargando ficha del paciente...</div>;

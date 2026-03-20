@@ -182,10 +182,6 @@ export const Staff = () => {
                                         <i className="fa-regular fa-calendar me-1"></i> Hoy: {getAppoCountForUser(user.id)} turnos
                                     </div>
                                     <div className="d-flex gap-2">
-                                        <button className="btn btn-outline-secondary btn-sm rounded-3 px-3">
-                                            <i className="fa-regular fa-clock me-1"></i> Agenda
-                                        </button>
-
                                         <button
                                             className="btn btn-outline-warning btn-sm rounded-3 px-3"
                                             onClick={() => generateReset(user.id)}

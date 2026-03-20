@@ -337,7 +337,7 @@ export const Dashboard = () => {
                                                     <li>
                                                         <button
                                                             className="dropdown-item small"
-                                                            disabled={appo.status !== "scheduled"}
+                                                            disabled={appo.status !== "scheduled" && appo.status !== "delayed"}
                                                             onClick={() => updateStatus(appo.id, "confirmed")}>
                                                             <i className="bi bi-check-circle me-2 text-success"></i>
                                                             Confirmar turno

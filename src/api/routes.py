@@ -964,6 +964,9 @@ def get_ai_chat_suggestion():
             slot_start_dt = datetime.combine(check_date, slot.start_time)
             slot_end_dt = datetime.combine(check_date, slot.end_time)
             
+            if slot_start_dt <= datetime.now():
+                continue
+            
             booked = Appointment.query.filter(
                 Appointment.procedure_id == procedure_id,
                 Appointment.start_date_time == slot_start_dt,

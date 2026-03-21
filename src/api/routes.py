@@ -9,6 +9,8 @@ from sqlalchemy import select, extract, or_
 from datetime import datetime, timezone, timedelta
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from twilio.rest import Client
+import google.generativeai as genai
+import json as json_lib
 
 api = Blueprint('api', __name__)
 pending_resets = []
@@ -670,6 +672,15 @@ def receive_message():
     )
 
     db.session.add(new_message)
+
+    admins = User.query.filter_by(role="admin").all()
+    for admin in admins:
+        notif = Notification(
+            user_id=admin.id,
+            message=f"Nuevo mensaje de WhatsApp de {patient.full_name}: '{body}'"
+        )
+        db.session.add(notif)
+        
     db.session.commit()
     return "", 200
 
@@ -882,3 +893,97 @@ def update_patient(patient_id):
 
     db.session.commit()
     return jsonify({"msg": "Paciente actualizado", "patient": patient.serialize()}), 200
+
+@api.route('/ai/chat-suggestion', methods=['POST'])
+@jwt_required()
+def get_ai_chat_suggestion():
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    model = genai.GenerativeModel("gemini-3-flash-preview")
+    data = request.get_json()
+    patient_id = data.get("patient_id")
+    if not patient_id:
+        return jsonify({"msg": "Missing patient_id"}), 400
+    
+    recent_messages = (
+        Message.query.filter_by(patient_id=patient_id, direction="incoming")
+        .order_by(Message.created_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    if not recent_messages:
+        return jsonify({"detected_procedure": None, "available_slots": []}), 200
+
+    conversation = "\n".join([f"- {m.body}" for m in reversed(recent_messages)])
+
+    all_procedures = Procedure.query.all()
+    procedure_list = "\n".join([f"- ID {p.id}: {p.name} (Especialidad ID {p.specialty_id})" for p in all_procedures])
+
+    prompt = (
+        "Sos un asistente de un centro médico. Analizá los siguientes mensajes de un paciente "
+        "y determiná si está pidiendo turno para algún procedimiento médico.\n\n"
+        f"Mensajes del paciente:\n{conversation}\n\n"
+        f"Procedimientos disponibles en el sistema:\n{procedure_list}\n\n"
+        "Respondé SOLO con este formato JSON, sin markdown:\n"
+        '{"procedure_id": 3, "procedure_name": "Tomografía"}\n'
+        "Si el paciente no está pidiendo ningún turno, respondé:\n"
+        '{"procedure_id": null, "procedure_name": null}'
+    )
+
+    try:
+        response = model.generate_content(prompt)
+        raw = response.text.strip()
+        if raw.startswith("```"):
+            parts = raw.split("```")
+            raw = parts[1] if len(parts) > 1 else parts[0]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+        ai_result = json_lib.loads(raw)
+    except Exception:
+        return jsonify({"detected_procedure": None, "available_slots": []}), 200
+
+    procedure_id = ai_result.get("procedure_id")
+    procedure_name = ai_result.get("procedure_name")
+
+    if not procedure_id:
+        return jsonify({"detected_procedure": None, "available_slots": []}), 200
+    
+    today = datetime.now().date()
+    available_slots = []
+    
+    for days_ahead in range(0, 30):
+        check_date = today + timedelta(days=days_ahead)
+        day_of_week = check_date.weekday()
+        slots = ProcedureAvailability.query.filter_by(
+            procedure_id=procedure_id,
+            day_of_week=day_of_week
+        ).all()
+        
+        for slot in slots:
+            slot_start_dt = datetime.combine(check_date, slot.start_time)
+            slot_end_dt = datetime.combine(check_date, slot.end_time)
+            
+            booked = Appointment.query.filter(
+                Appointment.procedure_id == procedure_id,
+                Appointment.start_date_time == slot_start_dt,
+                Appointment.status != "cancelled"
+            ).count()
+            
+            if booked < slot.capacity:
+                procedure = Procedure.query.get(procedure_id)
+                available_slots.append({
+                    "date": check_date.isoformat(),
+                    "start_time": slot.start_time.strftime("%H:%M:%S"),
+                    "end_time": slot.end_time.strftime("%H:%M:%S"),
+                    "available_slots": slot.capacity - booked,
+                    "procedure_id": procedure_id,
+                    "specialty_id": procedure.specialty_id if procedure else None
+                })
+
+        if len(available_slots) >= 5:
+            break       
+
+    return jsonify({"detected_procedure": {"id": procedure_id, "name": procedure_name}, "available_slots": available_slots}), 200
+
+    

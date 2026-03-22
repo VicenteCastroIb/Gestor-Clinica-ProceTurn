@@ -85,7 +85,8 @@ export const Navbar = () => {
 	useEffect(() => {
 		getPatients();
 		fetchNotifications();
-		const interval = setInterval(fetchNotifications, 3000);
+		//Default 30 seg, prevents server API saturation 
+		const interval = setInterval(fetchNotifications, 30000);
 		return () => clearInterval(interval);
 	}, [store.token]);
 

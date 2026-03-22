@@ -986,4 +986,47 @@ def get_ai_chat_suggestion():
 
     return jsonify({"detected_procedure": {"id": procedure_id, "name": procedure_name}, "available_slots": available_slots}), 200
 
-    
+#IA assistant unique back request, 30 days disponibility. Gemini direct with front
+@api.route('/procedure-capacity/bulk', methods=['POST'])
+@jwt_required()
+def get_bulk_procedure_capacity():
+    body = request.get_json()
+    days_ahead = body.get("days_ahead", 7)
+
+    today = datetime.now().date()
+    all_procedures = Procedure.query.all()
+    results = {}
+
+    for i in range(days_ahead):
+        check_date = today + timedelta(days=i)
+        day_of_week = check_date.weekday()
+        date_str = check_date.isoformat()
+
+        for proc in all_procedures:
+            slots = ProcedureAvailability.query.filter_by(
+                procedure_id=proc.id,
+                day_of_week=day_of_week
+            ).all()
+
+            for slot in slots:
+                start_dt = datetime.combine(check_date, slot.start_time)
+                booked = Appointment.query.filter(
+                    Appointment.procedure_id == proc.id,
+                    Appointment.start_date_time == start_dt,
+                    Appointment.status != "cancelled"
+                ).count()
+
+                if booked < slot.capacity:
+                    if date_str not in results:
+                        results[date_str] = []
+                    results[date_str].append({
+                        "procedure": proc.name,
+                        "procedure_id": proc.id,
+                        "specialty": proc.specialty.name if proc.specialty else None,
+                        "specialty_id": proc.specialty_id,
+                        "time": slot.start_time.strftime("%H:%M"),
+                        "end_time": slot.end_time.strftime("%H:%M"),
+                        "available": slot.capacity - booked
+                    })
+
+    return jsonify(results), 200

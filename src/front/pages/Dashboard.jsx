@@ -1,6 +1,7 @@
 import { useEffect, useContext, useMemo, useState } from "react";
 import { StoreContext } from "../hooks/useGlobalReducer";
 import { useNavigate } from "react-router-dom";
+import AiAssistant from "../components/AiAssistant";
 
 export const Dashboard = () => {
     const { store, dispatch } = useContext(StoreContext);
@@ -414,6 +415,7 @@ export const Dashboard = () => {
                     </div>
                 ))}
             </div>
+            <AiAssistant appointments={todayAppointments} stats={stats} token={token} allAppointments={store.appointments} />
         </div>
     );
 };

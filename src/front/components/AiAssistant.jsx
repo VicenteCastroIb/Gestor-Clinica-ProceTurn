@@ -60,6 +60,17 @@ const AiAssistant = ({ appointments = [], stats = {}, token, allAppointments = [
         const cancelled = appointments.filter(a => a.status === "cancelled");
         const postponed = appointments.filter(a => a.status === "postponed");
 
+        const otherAppointments = allAppointments.filter(a => {
+            const d = new Date(a.start_date_time);
+            return !(d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear());
+        });
+
+        const futureText = otherAppointments.length > 0
+            ? `\n\nTURNOS PROGRAMADOS RESTO DEL MES:\n${otherAppointments.map(a => 
+                `- ${a.patient_name} (DNI: ${a.patient_dni || 'N/A'}) | ${a.procedure_name} | ${new Date(a.start_date_time).toLocaleDateString('es-CL')} ${new Date(a.start_date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | Estado: ${a.status}`
+            ).join('\n')}`
+            : '';
+
         let availabilityText = "";
         const dates = Object.keys(availability).sort();
         if (dates.length > 0) {
@@ -120,6 +131,7 @@ ${confirmed.length > 0 ? `TURNOS CONFIRMADOS:\n${confirmed.map(a => `- ${a.patie
 ${cancelled.length > 0 ? `TURNOS CANCELADOS HOY:\n${cancelled.map(a => `- ${a.patient_name} | ${a.procedure_name}`).join('\n')}` : ''}
 
 ${postponed.length > 0 ? `TURNOS POSPUESTOS:\n${postponed.map(a => `- ${a.patient_name} (DNI: ${a.patient_dni}) | ${a.procedure_name} | ${new Date(a.start_date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`).join('\n')}` : ''}
+${futureText}
 ${availabilityText}
 ${patientsText}
 

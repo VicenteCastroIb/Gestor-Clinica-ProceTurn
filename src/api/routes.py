@@ -524,6 +524,9 @@ def handle_single_appointment(appointment_id):
         return jsonify({"msg": "Missing data"}), 400
 
     try:
+        old_status = appointment.status
+        old_start = appointment.start_date_time
+        
         new_status = body.get("status")
         if new_status:
             valid_statuses = ["scheduled", "confirmed", "cancelled", "delayed", "postponed"]
@@ -547,6 +550,28 @@ def handle_single_appointment(appointment_id):
             appointment.notes = body["notes"]
 
         appointment.updated_at = datetime.now(timezone.utc)
+        
+        admins = User.query.filter_by(role="admin").all()
+        for admin in admins:
+            notif_msg = None
+            if new_status and new_status != old_status:
+                status_esp = {
+                    "confirmed": "CONFIRMADO",
+                    "cancelled": "CANCELADO",
+                    "delayed": "DEMORADO",
+                    "postponed": "POSPUESTO",
+                    "scheduled": "PROGRAMADO"
+                }
+                notif_msg = f"Turno de {appointment.patient.full_name} cambiado a {status_esp.get(new_status, new_status)}."
+            
+            elif "start_date_time" in body:
+                new_start = appointment.start_date_time
+                if new_start != old_start:
+                    notif_msg = f"Turno de {appointment.patient.full_name} REPROGRAMADO para el {new_start.strftime('%d/%m/%Y %H:%M')}."
+            
+            if notif_msg:
+                db.session.add(Notification(user_id=admin.id, message=notif_msg))
+
         db.session.commit()
 
         return jsonify({
@@ -572,9 +597,17 @@ def check_delayed_appointments():
     ).all()
 
     updated = []
+    admins = User.query.filter_by(role="admin").all()
     for appo in late_appointments:
         appo.status = "delayed"
         updated.append(appo.id)
+        
+        for admin in admins:
+            notif = Notification(
+                user_id=admin.id,
+                message=f"TURNO DEMORADO: El turno de {appo.patient.full_name} ({appo.start_date_time.strftime('%H:%M')}) ha superado el tiempo de espera."
+            )
+            db.session.add(notif)
 
     if updated:
         db.session.commit()
@@ -636,6 +669,13 @@ def send_message():
     db.session.add(new_message)
     db.session.commit()
     return jsonify(new_message.serialize()), 201
+
+
+@api.route("/messages/unread-count", methods=["GET"])
+@jwt_required()
+def get_unread_message_count():
+    count = Message.query.filter_by(direction="incoming", read=False).count()
+    return jsonify({"count": count}), 200
 
 
 @api.route("/messages/<int:patient_id>", methods=["GET"])

@@ -254,7 +254,7 @@ class Notification(db.Model):
         if "recuperación" in msg:
             link = "/"
         elif "whatsapp" in msg or "mensaje" in msg:
-            link = "/messages"
+            link = "/chat"
         elif "turno" in msg:
             link = "/calendar"
 

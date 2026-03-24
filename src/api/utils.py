@@ -119,9 +119,11 @@ def check_ai_reschedule_opportunities(cancelled_appo_id):
         
     candidates_text = "\n".join([f"- DNI:{c.patient.dni} | Paciente:{c.patient.full_name} | Fecha:{c.start_date_time.strftime('%d/%m/%Y a las %H:%M')}" for c in candidates])
     
+    cancelled_date_str = cancelled_appointment.start_date_time.strftime('%d/%m/%Y a las %H:%M')
+    
     prompt = f"""
     Eres el asistente analítico de ProceTurn.
-    Se acaba de cancelar un turno de '{cancelled_appointment.procedure.name}' para el {cancelled_appointment.start_date_time.strftime('%d/%m/%Y a las %H:%M')}.
+    Se acaba de cancelar un turno de '{cancelled_appointment.procedure.name}' para el {cancelled_date_str}.
     Revisa esta lista de pacientes con turnos posteriores para el mismo procedimiento:
     {candidates_text}
     
@@ -129,9 +131,11 @@ def check_ai_reschedule_opportunities(cancelled_appo_id):
     IMPORTANTE: 
     - Escribe las fechas en formato DD/MM/AAAA y la hora en formato HH:MM (sin segundos).
     - NO incluyas el DNI ni el ID del paciente en el texto del mensaje sugerido.
+    - El mensaje DEBE estar redactado de manera natural y MENCIONAR EXPLÍCITAMENTE la fecha del turno actual del paciente y la nueva fecha propuesta ({cancelled_date_str}).
+    - Ejemplo estricto de formato esperado: "Se sugiere adelantar el turno de [Nombre] del [Fecha y hora original del paciente] al [Fecha y hora cancelada {cancelled_date_str}]."
     - Tu respuesta debe ser EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta y sin fencings markdown:
     {{
-      "mensaje": "Descripción breve de la sugerencia (máx 200 caracteres)",
+      "mensaje": "Descripción del movimiento sugerido (máx 250 caracteres)",
       "dni_sugerido": "DNI del paciente elegido"
     }}
     """

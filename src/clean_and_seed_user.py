@@ -85,12 +85,10 @@ def clean_and_seed():
             db.session.flush()
 
             # --- DISPONIBILIDAD (SLOTS) ---
-            print("Creando disponibilidad para los nuevos procedimientos...")
-            day_patterns = [[0, 2, 4], [1, 3, 5], [0, 1, 2, 3, 4]]
+            print("Creando disponibilidad para los nuevos procedimientos (todos los dias)...")
             availabilities = []
             for p in created_procs:
-                selected_days = random.choice(day_patterns)
-                for day in selected_days:
+                for day in range(7):  # 0=Lunes ... 6=Domingo, todos los dias
                     start_dt = datetime.combine(date.today(), time(9, 0)) # turno desde las 9am
                     for _ in range(6):
                         end_dt = start_dt + timedelta(minutes=p.duration_minutes)

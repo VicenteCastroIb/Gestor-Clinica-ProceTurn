@@ -576,6 +576,13 @@ def handle_single_appointment(appointment_id):
 
         db.session.commit()
 
+        if new_status == "cancelled" and old_status != "cancelled":
+            try:
+                from api.utils import check_ai_reschedule_opportunities
+                check_ai_reschedule_opportunities(appointment_id)
+            except Exception as ai_err:
+                print("Error en trigger IA:", ai_err)
+
         return jsonify({
             "msg": "Turno actualizado con éxito",
             "appointment": appointment.serialize()

@@ -62,6 +62,9 @@ def signup():
     existing_dni = User.query.filter_by(dni=dni).first()
     if existing_dni:
         return jsonify({"msg": "DNI already exists"}), 409
+    existing_phone = User.query.filter_by(phone=phone).first()
+    if existing_phone:
+        return jsonify({"msg": "Phone number already exists"}), 409
 
 
     new_user = User(email=email,
@@ -285,21 +288,34 @@ def forgot_password():
     user = User.query.filter_by(email=email).first()
     
     if user:
-        pending_resets.append({
-            "id": user.id,
-            "email": user.email,
-            "full_name": user.full_name,
-            "timestamp": datetime.now(timezone.utc).strftime("%H:%M")
-        })
+        existing_request = next((r for r in pending_resets if r['id'] == user.id), None)
         
-        admins = User.query.filter_by(role="admin").all()
-        for admin in admins:
-            notif = Notification(
-                user_id=admin.id,
-                message=f"Solicitud de recuperación de contraseña para {user.full_name} ({user.email})."
-            )
-            db.session.add(notif)
-        db.session.commit()
+        current_time = datetime.now(timezone.utc).strftime("%H:%M")
+        
+        if existing_request:
+            existing_request["timestamp"] = current_time
+        else:
+            pending_resets.append({
+                "id": user.id,
+                "email": user.email,
+                "full_name": user.full_name,
+                "timestamp": current_time
+            })
+            
+            admins = User.query.filter_by(role="admin").all()
+            for admin in admins:
+                existing_notif = Notification.query.filter_by(
+                    user_id=admin.id,
+                    is_read=False
+                ).filter(Notification.message.contains(user.email)).first()
+                
+                if not existing_notif:
+                    notif = Notification(
+                        user_id=admin.id,
+                        message=f"Solicitud de recuperación de contraseña para {user.full_name} ({user.email})."
+                    )
+                    db.session.add(notif)
+            db.session.commit()
     
     return jsonify({"msg": "Solicitud recibida"}), 200
 
@@ -370,6 +386,9 @@ def reset_password():
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    if check_password_hash(user.password_hash, new_password):
+        return jsonify({"msg": "La nueva contraseña no puede ser igual a la anterior"}), 400
 
     user.password_hash = generate_password_hash(new_password)
     db.session.commit()

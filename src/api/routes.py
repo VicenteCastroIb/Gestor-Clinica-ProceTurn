@@ -428,9 +428,10 @@ def create_appointment():
         if field not in body or not body[field]:
             return jsonify({"msg": f"El campo '{field}' es obligatorio"}), 400
 
-    already_booked = Appointment.query.filter_by(
-        patient_id=patient.id,
-        start_date_time=body['start_date_time'],
+    already_booked = Appointment.query.filter(
+        Appointment.patient_id == patient.id,
+        Appointment.start_date_time == body['start_date_time'],
+        Appointment.status != "cancelled"
     ).first()
 
     if already_booked:
@@ -452,9 +453,10 @@ def create_appointment():
         if not availability:
             return jsonify({"msg": "Este bloque horario no está disponible para este procedimiento"}), 400
         
-        current_appointments = Appointment.query.filter_by(
-            start_date_time=start_dt,
-            procedure_id=body['procedure_id']
+        current_appointments = Appointment.query.filter(
+            Appointment.start_date_time == start_dt,
+            Appointment.procedure_id == body['procedure_id'],
+            Appointment.status != "cancelled"
         ).count()
 
         if current_appointments >= availability.capacity:

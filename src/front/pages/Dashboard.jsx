@@ -107,7 +107,7 @@ export const Dashboard = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const updateStatus = async (appoId, newStatus) => {
+    const updateStatus = async (appoId, newStatus, reason = null) => {
         try {
             const resp = await fetch(
                 `${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appoId}`,
@@ -117,7 +117,7 @@ export const Dashboard = () => {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ status: newStatus }),
+                    body: JSON.stringify({ status: newStatus, cancellation_reason: reason }),
                 }
             );
             if (resp.ok) {

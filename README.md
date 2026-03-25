@@ -1,81 +1,72 @@
-# WebApp boilerplate with React JS and Flask API
+# 🏥 ProceTurn - Sistema Integral de Gestión de Turnos Clínicos
 
-Build web applications using React.js for the front end and python/flask for your backend API.
+> **Proyecto Final - Bootcamp Full Stack Developer @ 4Geeks Academy**
 
-- Documentation can be found here: https://4geeks.com/docs/start/react-flask-template
-- Here is a video on [how to use this template](https://www.loom.com/share/f37c6838b3f1496c95111e515e83dd9b)
-- Integrated with Pipenv for package managing.
-- Fast deployment to Render [in just a few steps here](https://4geeks.com/docs/start/deploy-to-render-com).
-- Use of .env file.
-- SQLAlchemy integration for database abstraction.
+ProceTurn es una plataforma web B2B diseñada para modernizar y optimizar la asignación de turnos para procedimientos médicos en clínicas. Desarrollada para reemplazar la gestión manual e ineficiente, la aplicación centraliza agendas, historiales de pacientes, comunicación por chat (WhatsApp) y gestión del personal, apoyada por alertas automáticas e Inteligencia Artificial.
 
-### 1) Installation:
+![ProceTurn Dashboard](./docs/assets/Dashboard.jpg)
+![ProceTurn Dashboard](./docs/assets/Calendar.jpg)
+![ProceTurn Dashboard](./docs/assets/Patients.jpg)
+![ProceTurn Dashboard](./docs/assets/Chat.jpg)
+![ProceTurn Dashboard](./docs/assets/Staff.jpg)
+![ProceTurn Dashboard](./docs/assets/EditUser.jpg)
+![ProceTurn Dashboard](./docs/assets/NewAppointment.jpg)
 
-> If you use Github Codespaces (recommended) or Gitpod this template will already come with Python, Node and the Posgres Database installed. If you are working locally make sure to install Python 3.10, Node 
+## 🚀 Mis Contribuciones (Vicente Castro)
 
-It is recomended to install the backend first, make sure you have Python 3.10, Pipenv and a database engine (Posgress recomended)
+Como desarrollador **Full Stack** en este proyecto colaborativo, participé activamente en todo el ciclo de vida del software (End-to-End). Mis responsabilidades y desarrollos principales incluyeron:
 
-1. Install the python packages: `$ pipenv install`
-2. Create a .env file based on the .env.example: `$ cp .env.example .env`
-3. Install your database engine and create your database, depending on your database you have to create a DATABASE_URL variable with one of the possible values, make sure you replace the valudes with your database information:
+### Frontend (React + Vite + Bootstrap)
 
-| Engine    | DATABASE_URL                                        |
-| --------- | --------------------------------------------------- |
-| SQLite    | sqlite:////test.db                                  |
-| MySQL     | mysql://username:password@localhost:port/example    |
-| Postgress | postgres://username:password@localhost:5432/example |
+- **Diseño e implementación de UI/UX:** Construcción desde cero de las vistas principales de la aplicación asegurando un diseño limpio, moderno y responsivo.
+- **Módulo "Tablero" (Dashboard):** Creación del panel de control principal que permite visualizar métricas diarias, administrar el estado de los turnos en tiempo real (Confirmado, Demorado, Cancelado) y reasignar horarios.
+- **Módulo "Calendario":** Desarrollo de la vista interactiva mensual para pronóstico de disponibilidad y bloqueo de fechas.
+- **Módulo "Personal":** Creación del panel de administración (CRUD) para la gestión del staff administrativo, control de roles y reseteo de credenciales.
 
-4. Migrate the migrations: `$ pipenv run migrate` (skip if you have not made changes to the models on the `./src/api/models.py`)
-5. Run the migrations: `$ pipenv run upgrade`
-6. Run the application: `$ pipenv run start`
+### Backend & Base de Datos (Python + Flask + PostgreSQL)
 
-> Note: Codespaces users can connect to psql by typing: `psql -h localhost -U gitpod example`
+- **Modelado de Datos:** Diseño y construcción de modelos relacionales clave utilizando **SQLAlchemy**.
+- **Desarrollo de API REST:** Creación de múltiples endpoints en **Flask** para conectar el cliente (React) con la base de datos de manera eficiente.
+- **Seguridad y Autenticación:** Implementación de flujos de seguridad utilizando tokens **JWT** para proteger rutas privadas y gestionar sesiones de administradores.
 
-### Undo a migration
+---
 
-You are also able to undo a migration by running
+## 🛠️ Stack Tecnológico y Arquitectura
 
-```sh
-$ pipenv run downgrade
-```
+El sistema está construido sobre una arquitectura moderna y escalable, integrando servicios externos para potenciar sus funcionalidades.
 
-### Backend Populate Table Users
+**Frontend:**
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB) ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white) ![Bootstrap](https://img.shields.io/badge/bootstrap-%238511FA.svg?style=for-the-badge&logo=bootstrap&logoColor=white) ![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E) ![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
 
-To insert test users in the database execute the following command:
+**Backend & DB:**
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Flask](https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/postgresql-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white) ![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
 
-```sh
-$ flask insert-test-users 5
-```
+**Integraciones:**
+![Twilio](https://img.shields.io/badge/Twilio-F22F46?style=for-the-badge&logo=Twilio&logoColor=white) ![Gemini AI](https://img.shields.io/badge/Gemini_IA-8E75B2?style=for-the-badge&logo=googlebard&logoColor=white)
 
-And you will see the following message:
+<!-- NOTA PARA VICENTE: Sube la imagen de tu diagrama de Arquitectura aquí, ¡suma muchísimos puntos! -->
 
-```
-  Creating test users
-  test_user1@test.com created.
-  test_user2@test.com created.
-  test_user3@test.com created.
-  test_user4@test.com created.
-  test_user5@test.com created.
-  Users created successfully!
-```
+![Arquitectura ProceTurn](./docs/assets/ArchitectureDiagram.jpg)
 
-### **Important note for the database and the data inside it**
 
-Every Github codespace environment will have **its own database**, so if you're working with more people eveyone will have a different database and different records inside it. This data **will be lost**, so don't spend too much time manually creating records for testing, instead, you can automate adding records to your database by editing ```commands.py``` file inside ```/src/api``` folder. Edit line 32 function ```insert_test_data``` to insert the data according to your model (use the function ```insert_test_users``` above as an example). Then, all you need to do is run ```pipenv run insert-test-data```.
+---
 
-### Front-End Manual Installation:
+## 📌 Funcionalidades Destacadas
 
--   Make sure you are using node version 20 and that you have already successfully installed and runned the backend.
+- 📊 **Dashboard de Control:** Monitoreo en tiempo real de la capacidad clínica diaria.
+- 📅 **Gestión Avanzada de Agendas:** Cambios de estado dinámicos (posponer, demorar, cancelar) con impacto visual inmediato.
+- 👥 **Base de Pacientes:** Registro completo e historial médico/turnos para toma de decisiones informadas (ej. ratio de cancelaciones).
+- 💬 **Comunicación Omnicanal (Twilio):** Vista de chat integrada directamente en la aplicación para interactuar con los pacientes vía WhatsApp.
+- 🤖 **Asistencia con IA (Gemini):** Sugerencias inteligentes integradas en el flujo de trabajo.
+- 🔐 **Gestión de Accesos:** Panel de administración exclusivo para el personal con control total sobre la plataforma.
 
-1. Install the packages: `$ npm install`
-2. Start coding! start the webpack dev server `$ npm run start`
+---
 
-## Publish your website!
+## 🤝 Equipo de Desarrollo
 
-This boilerplate it's 100% read to deploy with Render.com and Heroku in a matter of minutes. Please read the [official documentation about it](https://4geeks.com/docs/start/deploy-to-render-com).
+Este proyecto fue desarrollado bajo metodologías ágiles simulando un entorno de trabajo real, junto a mis compañeros:
 
-### Contributors
-
-This template was built as part of the 4Geeks Academy [Coding Bootcamp](https://4geeksacademy.com/us/coding-bootcamp) by [Alejandro Sanchez](https://twitter.com/alesanchezr) and many other contributors. Find out more about our [Full Stack Developer Course](https://4geeksacademy.com/us/coding-bootcamps/part-time-full-stack-developer), and [Data Science Bootcamp](https://4geeksacademy.com/us/coding-bootcamps/datascience-machine-learning).
-
-You can find other templates and resources like this at the [school github page](https://github.com/4geeksacademy/).
+- **Vicente Castro Ibarra** - _Full Stack Developer_ - [GitHub](https://github.com/VicenteCastroIb)
+- **Jaime Vega** - _Full Stack Developer_ - [GitHub](https://github.com/Drokko-Dev)
+- **Francisco M. Gómez** - _Full Stack Developer_ - [GitHub](https://github.com/Fragoz22)
+- **Laureano González** - _Full Stack Developer_ - [GitHub](https://github.com/laureanogonzalez02)

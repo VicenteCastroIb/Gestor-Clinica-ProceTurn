@@ -1,6 +1,6 @@
 # 🏥 ProceTurn - Sistema Integral de Gestión de Turnos Clínicos
 
-ProceTurn es una plataforma web B2B diseñada para modernizar y optimizar la asignación de turnos para procedimientos médicos en clínicas. Desarrollada para reemplazar la gestión manual e ineficiente, la aplicación centraliza agendas, historiales de pacientes, comunicación por chat (WhatsApp) y gestión del personal, apoyada por alertas automáticas e Inteligencia Artificial.
+ProceTurn es una plataforma web B2B diseñada para modernizar y optimizar la asignación de turnos para procedimientos médicos en clínicas. Desarrollada para reemplazar la gestión manual e ineficiente, la aplicación centraliza agendas, historiales de pacientes, comunicación por chat (WhatsApp) y gestión del personal, apoyada por alertas y sugerencias automáticas e Inteligencia Artificial.
 
 ![ProceTurn Dashboard](./docs/assets/Dashboard.jpg)
 ![ProceTurn Dashboard](./docs/assets/Calendar.jpg)
@@ -42,7 +42,7 @@ El sistema está construido sobre una arquitectura moderna y escalable, integran
 **Integraciones:**
 ![Twilio](https://img.shields.io/badge/Twilio-F22F46?style=for-the-badge&logo=Twilio&logoColor=white) ![Gemini AI](https://img.shields.io/badge/Gemini_IA-8E75B2?style=for-the-badge&logo=googlebard&logoColor=white)
 
-<!-- NOTA PARA VICENTE: Sube la imagen de tu diagrama de Arquitectura aquí, ¡suma muchísimos puntos! -->
+
 
 ![Arquitectura ProceTurn](./docs/assets/ArchitectureDiagram.jpg)
 
@@ -64,7 +64,7 @@ El sistema está construido sobre una arquitectura moderna y escalable, integran
 
 Este proyecto fue desarrollado bajo metodologías ágiles simulando un entorno de trabajo real, junto a mis compañeros:
 
-- **Vicente Castro Ibarra** - _Full Stack Developer_ - [GitHub](https://github.com/VicenteCastroIb)
 - **Jaime Vega** - _Full Stack Developer_ - [GitHub](https://github.com/Drokko-Dev)
 - **Francisco M. Gómez** - _Full Stack Developer_ - [GitHub](https://github.com/Fragoz22)
 - **Laureano González** - _Full Stack Developer_ - [GitHub](https://github.com/laureanogonzalez02)
+- **Vicente Castro Ibarra** - _Full Stack Developer_ - [GitHub](https://github.com/VicenteCastroIb)

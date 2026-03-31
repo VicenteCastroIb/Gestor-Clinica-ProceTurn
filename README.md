@@ -1,7 +1,5 @@
 # 🏥 ProceTurn - Sistema Integral de Gestión de Turnos Clínicos
 
-> **Proyecto Final - Bootcamp Full Stack Developer @ 4Geeks Academy**
-
 ProceTurn es una plataforma web B2B diseñada para modernizar y optimizar la asignación de turnos para procedimientos médicos en clínicas. Desarrollada para reemplazar la gestión manual e ineficiente, la aplicación centraliza agendas, historiales de pacientes, comunicación por chat (WhatsApp) y gestión del personal, apoyada por alertas automáticas e Inteligencia Artificial.
 
 ![ProceTurn Dashboard](./docs/assets/Dashboard.jpg)

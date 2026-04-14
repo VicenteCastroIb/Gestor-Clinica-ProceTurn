@@ -1,25 +1,31 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import useGlobalContext from "../hooks/useGlobalReducer";
+import useGlobalReducer from "../hooks/useGlobalReducer";
 
 
 const Login = () => {
     const navigate = useNavigate();
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [dni, setDni] = useState("");
-    const [isAdmin, setIsAdmin] = useState(false);
+    const { dispatch } = useGlobalReducer();
+
+    const [loginData, setLoginData] = useState({
+        email: "",
+        password: "",
+        isAdmin: false,
+        dni: ""
+    });
     const [error, setError] = useState("");
-    const { dispatch } = useGlobalContext();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); // disable login button in charge
+
+    const handleChange = (e) => {
+        const value = e.target.type === "checkbox"? e.target.checked : e.target.value; // define target value between checkbox and other values.
+        setLoginData({
+            ...loginData, [e.target.name]: value});
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError("");
-
-        const body = { email, password }
-        if (isAdmin) body.dni = dni;
 
         try {
             const response = await fetch(import.meta.env.VITE_BACKEND_URL + "/api/login", {
@@ -27,16 +33,16 @@ const Login = () => {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(body),
+                body: JSON.stringify(loginData),
             });
             const data = await response.json();
             if (response.ok) {
                 dispatch({ type: "login", payload: { token: data.access_token, user: data.user } });
                 navigate("/");
-            } else {
+            } else { // backend errors
                 setError(data.msg || "Error al iniciar sesión");
             }
-        } catch (error) {
+        } catch (error) {// red errors
             console.error("Error:", error);
             setError("Error de conexión con el servidor");
         } finally {
@@ -45,7 +51,6 @@ const Login = () => {
     };
 
     return (
-        <>
             <div className="container py-5">
                 <div className="row justify-content-center">
                     <div className="col-md-6 col-lg-5">
@@ -55,26 +60,26 @@ const Login = () => {
                             <form onSubmit={handleSubmit}>
                                 <div className="mb-3">
                                     <label className="form-label">Email</label>
-                                    <input type="email" className="form-control"
-                                        value={email} onChange={(e) => setEmail(e.target.value)} required />
+                                    <input type="email" className="form-control" name="email"
+                                        value={loginData.email} onChange={(e) => handleChange(e)} required />
                                 </div>
                                 <div className="mb-3">
                                     <label className="form-label">Contraseña</label>
-                                    <input type="password" className="form-control"
-                                        value={password} onChange={(e) => setPassword(e.target.value)} required />
+                                    <input type="password" className="form-control" name="password"
+                                        value={loginData.password} onChange={(e) => handleChange(e)} required />
                                 </div>
                                 <div className="form-check mb-3">
-                                    <input type="checkbox" className="form-check-input" id="adminCheck"
-                                        checked={isAdmin} onChange={(e) => setIsAdmin(e.target.checked)} />
-                                    <label className="form-check-label" htmlFor="adminCheck">
+                                    <input type="checkbox" className="form-check-input" id="adminCheck" name="isAdmin"
+                                        checked={loginData.isAdmin} onChange={(e) => handleChange(e)} />
+                                    <label className="form-check-label" htmlFor="adminCheck"> {/*connect label to input*/}
                                         Soy administrador
                                     </label>
                                 </div>
-                                {isAdmin && (
+                                {loginData.isAdmin && ( //if user is admin, needs to type DNI.
                                     <div className="mb-3">
                                         <label className="form-label">DNI</label>
-                                        <input type="text" className="form-control"
-                                            value={dni} onChange={(e) => setDni(e.target.value)} required />
+                                        <input type="text" className="form-control" name="dni"
+                                            value={loginData.dni} onChange={(e) => handleChange(e)} required />
                                     </div>
                                 )}
                                 <button type="submit" className="btn btn-signup w-100 py-2" disabled={loading}>
@@ -90,8 +95,6 @@ const Login = () => {
                     </div>
                 </div>
             </div>
-        </>
-
     );
 };
 

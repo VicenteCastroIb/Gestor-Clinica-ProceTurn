@@ -81,14 +81,14 @@ def signup():
 
 @api.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    email = data.get('email', None)
+    data = request.get_json() # convert JSON to phyton dictionary.
+    email = data.get('email', None) # search for email and password. 
     password = data.get('password', None)
 
-    if not email or not password:
+    if not email or not password: # if any or both fields are empty send error msg to front.
         return jsonify({"msg": "Missing email or password"}), 400
 
-    user = User.query.filter_by(email=email).first()
+    user = User.query.filter_by(email=email).first() 
     if user and user.is_locked:
         return jsonify({"msg": "Account locked. Contact support to unlock."}), 401
     if not user or not check_password_hash(user.password_hash, password):

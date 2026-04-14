@@ -1,28 +1,26 @@
-import { useEffect, useContext } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { StoreContext } from "../hooks/useGlobalReducer";
-import { Outlet } from "react-router-dom/dist"
+import useGlobalReducer from "../hooks/useGlobalReducer";
+import { Outlet } from "react-router-dom"
 import ScrollToTop from "../components/ScrollToTop"
 import { Navbar } from "../components/Navbar"
-import { Footer } from "../components/Footer"
 import { Sidebar } from "../components/Sidebar"
 import { isTokenExpired } from "../utils";
 import "../styles/layout.css";
 
-// Base component that maintains the navbar and footer throughout the page and the scroll to top functionality.
+// Base component that maintains the navbar and sidebar throughout the page and the scroll to top functionality.
 export const Layout = () => {
     const navigate = useNavigate();
-    const { dispatch } = useContext(StoreContext);
+    const { store, dispatch } = useGlobalReducer(); // useGlobalReducer is a custom hook, internally uses useContext(StoreContext)
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-
-        if (token && isTokenExpired(token)) {
-            console.warn("Token detectado como expirado al cargar Layout.");
+        // if token dont exist or token is expired, automatic logout for user, and redirect to "/login", with "navigate" function.
+        if (!store.token || isTokenExpired(store.token)) {   
+            console.warn("Token no encontrado o expirado al cargar Layout.");
             dispatch({ type: "logout" });
             navigate("/login");
         }
-    }, [navigate, dispatch]);
+    }, [navigate, dispatch, store.token]);
     return (
         <ScrollToTop>
             <div className="app-wrapper">
@@ -30,7 +28,7 @@ export const Layout = () => {
                 <div className="main-content">
                     <Navbar />
                     <div className="page-body">
-                        <Outlet />
+                        <Outlet /> {/*Reserved word from React, always shows components in "Outlet" */}
                     </div>
                 </div>
             </div>

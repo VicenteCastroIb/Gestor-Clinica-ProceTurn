@@ -4,7 +4,7 @@ import useGlobalReducer from "../hooks/useGlobalReducer";
 import ConfirmModal from "../components/ConfirmModal";
 
 const Signup = () => {
-    const { store } = useGlobalReducer();
+    const { store } = useGlobalReducer(); //access to global-state
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -13,30 +13,37 @@ const Signup = () => {
         full_name: "",
         phone: ""
     });
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); //prevent double submit
     const [alert, setAlert] = useState({ show: false, msg: "", type: "" });
 
     const handleChange = (e) => {
-        if (alert.show) setAlert({ show: false, msg: "", type: "" });
+        if (alert.show) setAlert({ show: false, msg: "", type: "" }); //remove alert when user is typing
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleSubmit = (e) => {  // for submit form.
+        e.preventDefault();
+        if (formData.role === "admin") { // early return to show modal | admin case, handler direct by modal
+            return;
+        }
+        confirmSubmit(); // if role not admin run Submit
+    };
 
     const confirmSubmit = async () => {
-        setLoading(true);
-        setAlert({ show: false, msg: "", type: "" });
+        setLoading(true); //active loading
+        setAlert({ show: false, msg: "", type: "" }); //clear alerts before submit
         try {
-            const response = await fetch(import.meta.env.VITE_BACKEND_URL + "/api/signup", {
+            const response = await fetch(import.meta.env.VITE_BACKEND_URL + "/api/signup", { // following code await for the fetch response | Read variable from .env file.
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${store.token}`,
+                    "Content-Type": "application/json", // tells flaks body coming in JSON format.
+                    "Authorization": `Bearer ${store.token}`, // "Bearer " + store.token,   (possible)
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(formData), //convert object to JSON, flask only can read JSON
             });
-            const data = await response.json();
+            const data = await response.json(); //convert response from backend to object
             if (response.ok) {
-                setAlert({ show: true, msg: "Usuario creado exitosamente", type: "success" });
+                setAlert({ show: true, msg: "Usuario creado exitosamente", type: "success" }); // if success, show success alert and clear FormData.
                 setFormData({
                     email: "",
                     password: "",
@@ -46,7 +53,7 @@ const Signup = () => {
                     phone: ""
                 });
 
-            } else {
+            } else { // shows backend responses and set in Alert variable to show in front.
                 if (data.msg === "User already exists") {
                     setAlert({ show: true, msg: "El correo electrónico ya está registrado.", type: "danger" });
                 } else if (data.msg === "DNI already exists") {
@@ -57,23 +64,12 @@ const Signup = () => {
                     setAlert({ show: true, msg: data.msg || "Error al registrar", type: "danger" });
                 }
             }
-        } catch (error) {
+        } catch (error) { // for server problems
             setAlert({ show: true, msg: "Error de conexión con el servidor.", type: "warning" });
-        } finally {
+        } finally { // Activate button again
             setLoading(false);
         }
     };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (formData.role === "admin") {
-            return;
-        }
-        confirmSubmit();
-    };
-
-
-
 
     return (
         <div className="container py-5">
@@ -82,10 +78,10 @@ const Signup = () => {
                     <div className="signup-card">
                         <h2 className="text-center mb-4 fw-bold">Crear Usuario</h2>
                         <form onSubmit={handleSubmit}>
-                            {alert.show && (
-                                <div className={`alert alert-${alert.type} alert-dismissible fade show`} role="alert">
+                            {alert.show && ( // conditional render.
+                                <div className={`alert alert-${alert.type} alert-dismissible fade show`} role="alert"> {/*alert.type property define alert color*/}
                                     <i className="fa-solid fa-circle-exclamation me-2"></i>
-                                    {alert.msg}
+                                    {alert.msg} {/*alert.msg property define alert message*/}
                                     <button type="button" className="btn-close" onClick={() => setAlert({ ...alert, show: false })} aria-label="Close"></button>
                                 </div>
                             )}
@@ -127,8 +123,8 @@ const Signup = () => {
                                 type={formData.role === "admin" ? "button" : "submit"}
                                 className="btn btn-signup w-100 py-2"
                                 disabled={loading}
-                                data-bs-toggle={formData.role === "admin" ? "modal" : undefined}
-                                data-bs-target={formData.role === "admin" ? "#confirmAdminModal" : undefined}
+                                data-bs-toggle={formData.role === "admin" ? "modal" : undefined} // toggle activate modal
+                                data-bs-target={formData.role === "admin" ? "#confirmAdminModal" : undefined} // target defines what modal activate
                             >
                                 {loading ? "Creando..." : "Crear Usuario"}
                             </button>

@@ -5,8 +5,6 @@ import {
 } from "react-router-dom";
 import { Layout } from "./pages/Layout";
 import { Dashboard } from "./pages/Dashboard";
-import { Single } from "./pages/Single";
-import { Demo } from "./pages/Demo";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import { EditUser } from "./pages/EditUser";
@@ -23,18 +21,21 @@ import Chat from "./components/Chat";
 export const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-      <Route path="/login" element={<Login />} />
+    {/*3 free routes for login and reset-password*/}
+      <Route path="/login" element={<Login />} /> 
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-      <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>
+      {/*Routes in parent layout (SideBar - NavBar), 2 ways to protect routes, "ProtectedRoute" is token required. "adminOnly" is token and admin role required.*/}
+      <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}> {/*errorElement for non existing routes.*/}
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/single/:theId" element={<ProtectedRoute><Single /></ProtectedRoute>} />
-        <Route path="/demo" element={<ProtectedRoute><Demo /></ProtectedRoute>} />
-        <Route path="/calendar" element={<ProtectedRoute adminOnly><Calendar /></ProtectedRoute>} />
+        <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
         <Route path="/signup" element={<ProtectedRoute adminOnly><Signup /></ProtectedRoute>} />
+
+        {/* Route "/new=appointment" and "/edit-appointment/:id" use the same component. The ":id" make the route dinamic to autocomplete input for editing more efficiently*/}
         <Route path="/new-appointment" element={<ProtectedRoute><NewAppointment /></ProtectedRoute>} />
         <Route path="/edit-appointment/:id" element={<ProtectedRoute><NewAppointment /></ProtectedRoute>} />
+        
         <Route path="/staff" element={<ProtectedRoute adminOnly><Staff /></ProtectedRoute>} />
         <Route path="/editUser" element={<ProtectedRoute adminOnly><EditUser /></ProtectedRoute>} />
         <Route path="/patients" element={<ProtectedRoute ><Patients /></ProtectedRoute>} />
